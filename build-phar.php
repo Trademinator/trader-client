@@ -3,7 +3,7 @@ ini_set("phar.readonly", 0);
 try{
 	echo 'Building PHAR...';
 	$pharFile = 'trademinator-client.phar';
-	if (file_exists($pharFile)) 
+	if (file_exists($pharFile))
 		unlink($pharFile);
 
 	if (file_exists($pharFile . '.gz'))
