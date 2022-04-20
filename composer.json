@@ -18,7 +18,6 @@
     ],
     "require": {
         "ccxt/ccxt": "*",
-	"clue/buzz-react": "*",
 	"clue/http-proxy-react": "*",
 	"react/event-loop": "*",
 	"recoil/react": "*",
@@ -30,7 +29,8 @@
 	"ext-gmp": "*",
 	"ext-sqlite3": "*",
 	"longman/telegram-bot": "*",
-	"monolog/monolog": "*"
+	"monolog/monolog": "*",
+        "react/http": "*"
     },
     "autoload": {
         "files": [
