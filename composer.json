@@ -1,0 +1,52 @@
+{
+    "name": "okay-inc/trademinator",
+    "type": "project",
+    "description": "Trademinator Bot",
+    "keywords": ["trader", "bot", "cryptocurrency"],
+    "license": "MIT",
+    "homepage": "https://trademinator.com/",
+    "support": {
+        "issues": "https://trademinator.com/",
+        "source": "https://trademinator.com/"
+    },
+    "authors": [
+        {
+            "name": "OKay Inc",
+            "homepage": "https://okay.network/",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "ccxt/ccxt": "*",
+	"clue/buzz-react": "*",
+	"clue/http-proxy-react": "*",
+	"react/event-loop": "*",
+	"recoil/react": "*",
+	"pear/console_color2": "*",
+	"recoil/recoil": "*",
+	"ext-curl": "*",
+	"ext-mbstring": "*",
+	"ext-json": "*",
+	"ext-gmp": "*",
+	"ext-sqlite3": "*",
+	"longman/telegram-bot": "*",
+	"monolog/monolog": "*"
+    },
+    "autoload": {
+        "files": [
+		"helpers/trading.php",
+		"helpers/stddev.php",
+		"helpers/OKayInc/trademinator.php",
+		"helpers/OKayInc/Trademinator/client.php",
+		"helpers/OKayInc/Trademinator/config.php",
+		"helpers/OKayInc/Trademinator/orchestor.php"
+        ]
+    },
+    "require-dev": {
+    },
+    "scripts": {
+        "check-code": [
+            "\"vendor/bin/phpcs\""
+        ]
+    }
+}
