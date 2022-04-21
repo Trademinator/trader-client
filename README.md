@@ -34,4 +34,6 @@ For now (while we are in beta test), all available subscriptions are for free. W
 * BTC/CAD on NDAX
 * DOGE/cad on NDAX
 * XRP/CAD on NDAX
+
+
 More free symbols will come.
