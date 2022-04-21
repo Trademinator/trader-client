@@ -18,8 +18,8 @@ Trademinator is a cryptocurrency bot powered by Artificial Intelligence with a C
 
 ## Troubleshooting
 ### About the Keys
-Not all exchanges support API keys, some of then need more information (like NDAX). After running the client for the first time, you will find a trademinator.cfg file, you can add the missing information in the exchange section; please refer to CCXT manual to know details of each exchange.
-### Other erros
+Not all exchanges support API keys, some of them need more information (like NDAX). After running the client for the first time, you will find a trademinator.cfg file, you can add the missing information in the exchange section; please refer to CCXT manual to know details of each exchange.
+### Other errors
 The client will create .err files, please read them as they contain details to help you.
 
 ## Quick FAQ
@@ -39,3 +39,8 @@ For now (while we are in beta test), all available subscriptions are for free. W
 
 
 More free symbols will come.
+
+### More FAQs
+Read the following links for more answers:
+* https://trademinator.com/index.php?option=com_content&view=article&id=5:general-trading-questions-answers&catid=9&Itemid=136
+* https://trademinator.com/index.php?option=com_content&view=article&id=8:trademinator-specific-questions-answers&catid=9&Itemid=136
