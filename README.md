@@ -4,6 +4,7 @@ Trademinator is a cryptocurrency bot powered by Artificial Intelligence with a C
 ## Requirements
 * PHP 7.4+ (PHP 8.1 recommended)
 * API keys rom any supported Exchanges
+* A valid subscription (read the FAQ)
 
 ## Installation
 ### Simple and easy Way
@@ -24,3 +25,13 @@ Not all exchanges support API keys, some of then need more information (like NDA
 Trademinator has been developed and testing using Bitso and NDAX exchanges (it will work with others if they are supported by the CCXT library). If you want to support the project, please use the following referral links:
 * NDAX https://refer.ndax.io/fQdc
 * BITSO https://bitso.com/register?ref=bul
+
+### What are the subscriptions?
+For now (while we are in beta test), all available subscriptions are for free. We currently have the following symbols available for trading:
+* BTC/MXN on Bitso
+* XRP/MXN on Bitso
+* ADA/CAD on NDAX
+* BTC/CAD on NDAX
+* DOGE/cad on NDAX
+* XRP/CAD on NDAX
+More free symbols will come.
