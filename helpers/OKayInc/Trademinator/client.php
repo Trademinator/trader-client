@@ -201,11 +201,13 @@ class Client extends \OKayInc\Trademinator{
 
 								//$_logline = __FILE__.':'.__LINE__.' $this->average_transaction: '.print_r($this->average_transaction, true);
 								//$this->log_debug($_logline);
+								$this->get_my_trades(null);
+								$last_trade = end($this->my_trades);
 
-								if (($signal['action'] == 'buy') && ($current_state == 'buy') && (floatval($this->last_ticker['ask']) < floatval($this->average_transaction))){
+								if (($signal['action'] == 'buy') && ($current_state == 'buy') && (floatval($this->last_ticker['ask']) < floatval($last_trade['price']))){
 									// buy, price is still cheaper than the average buying price
 
-									$_logline = $this->symbol.' price('.$this->last_ticker['ask'].') is lower than your average transaction('.$this->average_transaction.').';
+									$_logline = $this->symbol.' price('.$this->last_ticker['ask'].') is lower than your average transaction('.$this->average_transaction.') and last purchase('.$last_trade['price'].').';
 									$this->log_notice($_logline);
 
 									$amount = $this->calculate_amount('buy');
@@ -1696,5 +1698,72 @@ PRICE=$price";
 		$unallocated_xxx = $this->balance[$this->base_currency]['total'] - $allocated_xxx;
 
 		return [$unallocated_xxx, $price_xxx];
+	}
+
+	public function general_profit_report(bool $show_details = false){
+		$_exchange = $this->exchange_name; $_symbol = $this->symbol;
+		$sql_fullfilled_sells  = 'SELECT * FROM my_trades WHERE exchange = :exchange AND symbol = :symbol AND missing = 0 AND side = "sell" ORDER BY timestamp DESC;';
+		$statement = $this->db->prepare($sql_fullfilled_sells);
+		$statement->bindValue(':exchange', $_exchange, SQLITE3_TEXT);
+		$statement->bindValue(':symbol', $_symbol, SQLITE3_TEXT);
+		try{
+			$_query = $statement->getSQL(false);
+		}
+		catch(Exception $e) {
+			$_query = $statement->getSQL(false);
+		}
+
+		$_logline = __FILE__.':'.__LINE__.' '.$_query;
+		$this->log_debug($_logline);
+
+		$i = 0; $transactions = array();
+		$result = $statement->execute();
+		while($row = $result->fetchArray(SQLITE3_ASSOC)){
+			$_sell_id = $row['id'];
+			$transactions[$i]['recovered'] = $row['cost'];	// YYY Market currency
+			// amount & missing are in XXX currency, results need to be in YYY
+			$sql_find_buys = 'SELECT (b.amount - b.missing) * b.price AS invested FROM buys_vs_sells bs INNER JOIN my_trades b ON b.id = bs.buy_id WHERE bs.sell_id = :sell_id AND b.side = "buy"';
+			$statement2 = $this->db->prepare($sql_find_buys);
+			$statement2->bindValue(':sell_id', $_sell_id, SQLITE3_TEXT);
+			try{
+					$_query = $statement2->getSQL(false);
+			}
+			catch(Exception $e) {
+				$_query = $statement->getSQL(false);
+			}
+
+			$_logline = __FILE__.':'.__LINE__.' '.$_query;
+			$this->log_debug($_logline);
+
+			$j = 0;
+			$result2 = $statement2->execute();
+			while($row2 = $result2->fetchArray(SQLITE3_ASSOC)){
+				$transactions[$i]['invests'][$j] = $row2['invested'];
+				$j++;
+			}
+			$i++;
+		}
+
+		$t_i = 0; $t_r = 0;
+		$headers = sprintf("%10s %10s %10s %10s\n",'invest', 'recover', 'profit', '%');
+		echo PHP_EOL.$this->colour->convert('%w'.$headers);
+		foreach ($transactions as &$t){
+			$ii = array_sum($t['invests']);
+			$t['profit'] = $t['recovered'] - $ii;
+			$t['profit_percentage'] = 100 * $t['profit'] / $ii;
+			$t_i += $ii;
+			$t_r += $t['recovered'];
+
+			if ($show_details){
+				$line = sprintf("%10f %10f %10f %10f\n", $ii, $t['recovered'], $t['profit'], $t['profit_percentage']);
+				echo $this->colour->convert('%w'.$line);
+			}
+		}
+
+		$total_profit = $t_r - $t_i;
+		$total_profit_percentage = 100 * $total_profit / $t_i;
+		echo '----------------------------------------------'.PHP_EOL;
+		$line = sprintf("%10f %10f %10f %10f\n", $t_i, $t_r, $total_profit, $total_profit_percentage);
+		echo $this->colour->convert('%W'.$line);
 	}
 }
