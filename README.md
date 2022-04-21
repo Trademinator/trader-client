@@ -16,9 +16,11 @@ Trademinator is a cryptocurrency bot powered by Artificial Intelligence with a C
 * Run composer update
 * Execute it: php main.php
 
-## Troubleshoot
+## Troubleshooting
 ### About the Keys
 Not all exchanges support API keys, some of then need more information (like NDAX). After running the client for the first time, you will find a trademinator.cfg file, you can add the missing information in the exchange section; please refer to CCXT manual to know details of each exchange.
+### Other erros
+The client will create .err files, please read them as they contain details to help you.
 
 ## Quick FAQ
 ### What Exchanges do you recommend?
