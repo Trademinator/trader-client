@@ -92,6 +92,9 @@ class Client extends \OKayInc\Trademinator{
 			
 			curl_close($ch);
 			$signal = json_decode($response, true);
+			if (is_null($signal)){
+				return false;
+			}
 			$mode = $config['mode'];
 			$trade_function = $config['mode'].'_signal';
 
@@ -1147,8 +1150,18 @@ PRICE=$price";
 
 		// ask  -       others selling, me buying
 		// bid  -       others buying, me selling
-		$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
-		$this->balance = $this->exchange->fetch_balance();
+		$again = false;
+		do{
+			try{
+				$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
+				$this->balance = $this->exchange->fetch_balance();
+				$again = false;
+			}
+			catch(Exception $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
+		} while($again);
 //echo print_r($this->markets[$this->symbol], true).PHP_EOL;
 		// XXX/YYY  BTC/MXN  BTC/USDT
 		// Prefer to operate in YYY (market currency), if $market doesnt have the information, fall baco to XXX (quote currency)
@@ -1761,7 +1774,12 @@ PRICE=$price";
 		}
 
 		$total_profit = $t_r - $t_i;
-		$total_profit_percentage = 100 * $total_profit / $t_i;
+		if ($t_i > 0){
+			$total_profit_percentage = 100 * $total_profit / $t_i;
+		}
+		else{
+			$total_profit_percentage = 0;
+		}
 		echo '----------------------------------------------'.PHP_EOL;
 		$line = sprintf("%10f %10f %10f %10f\n", $t_i, $t_r, $total_profit, $total_profit_percentage);
 		echo $this->colour->convert('%W'.$line);

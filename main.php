@@ -7,17 +7,19 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Handler\FirePHPHandler;
 
 defined("TRADEMINATOR_ROOTDIR") or define("TRADEMINATOR_ROOTDIR", __DIR__ . DIRECTORY_SEPARATOR);
+defined("TRADEMINATOR_LOGS") or define("TRADEMINATOR_LOGS", __DIR__ . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR);
 
 require_once __DIR__ . '/vendor/autoload.php';
 date_default_timezone_set('UTC');
 $short = '';
-$long = array('filename:','debug:','dry','times:','reset-config','command:');
+$long = array('filename:','debug:','dry','times:','reset-config','command:', 'yes');
 $options = getopt($short, $long);
 $reset_config = array_key_exists('reset-config', $options);
 $debug = array_key_exists('debug', $options)?(strtoupper($options['debug'])):'WARNING';
 $filename = array_key_exists('filename', $options)?($options['filename']):'trademinator.cfg';
 $times = array_key_exists('times', $options)?intval($options['times']):null;
 $command = array_key_exists('command', $options)?($options['command']):null;
+$yes = array_key_exists('yes', $options);
 
 $_loglevel = 0;
 switch($debug){
@@ -41,6 +43,10 @@ if (!verify_extensions()){
 	exit(1);
 }
 
+if (!is_dir(TRADEMINATOR_LOGS)) {
+	mkdir(TRADEMINATOR_LOGS);
+}
+
 if ($reset_config && file_exists($filename)){
 	unlink($filename);
 }
@@ -54,7 +60,12 @@ if ($times == 0){
 	$times = null;
 }
 
-$conformity = ask_bool('Do you understand and accept the inherit risks and consequences of cryptocurrency trading? Yes or No: ', false);
+if ($yes){
+	$conformity = true;
+}
+else{
+	$conformity = ask_bool('Do you understand and accept the inherit risks and consequences of cryptocurrency trading? Yes or No: ', false);
+}
 
 if ($conformity){
 	$o = new \OKayInc\Trademinator\Orchestor($filename, $_loglevel);
