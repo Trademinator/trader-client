@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "ccxt/ccxt",
-            "version": "1.80.54",
+            "version": "1.81.22",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ccxt/ccxt.git",
-                "reference": "23b9427126a6523486c94de21538a326bca06dc8"
+                "reference": "af9085563c28d0783c135db55a4a8ac61a6600e9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/23b9427126a6523486c94de21538a326bca06dc8",
-                "reference": "23b9427126a6523486c94de21538a326bca06dc8",
+                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/af9085563c28d0783c135db55a4a8ac61a6600e9",
+                "reference": "af9085563c28d0783c135db55a4a8ac61a6600e9",
                 "shasum": ""
             },
             "require": {
@@ -285,7 +285,7 @@
                     "type": "open_collective"
                 }
             ],
-            "time": "2022-04-23T12:08:29+00:00"
+            "time": "2022-05-02T19:51:39+00:00"
         },
         {
             "name": "clue/http-proxy-react",
@@ -808,16 +808,16 @@
         },
         {
             "name": "longman/telegram-bot",
-            "version": "0.76.1",
+            "version": "0.77.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-telegram-bot/core.git",
-                "reference": "ba430516d3525f322c8285befd3433a63eae30bf"
+                "reference": "627c19955749dd36bf690e8f84b98e31fc32aa67"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-telegram-bot/core/zipball/ba430516d3525f322c8285befd3433a63eae30bf",
-                "reference": "ba430516d3525f322c8285befd3433a63eae30bf",
+                "url": "https://api.github.com/repos/php-telegram-bot/core/zipball/627c19955749dd36bf690e8f84b98e31fc32aa67",
+                "reference": "627c19955749dd36bf690e8f84b98e31fc32aa67",
                 "shasum": ""
             },
             "require": {
@@ -901,7 +901,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-03-30T19:20:33+00:00"
+            "time": "2022-04-24T21:16:17+00:00"
         },
         {
             "name": "monolog/monolog",
