@@ -1157,6 +1157,18 @@ PRICE=$price";
 				$this->balance = $this->exchange->fetch_balance();
 				$again = false;
 			}
+			catch (\ccxt\AuthenticationError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
+			catch (\ccxt\NetworkError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
+			catch (\ccxt\ExchangeError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
 			catch(Exception $e) {
 				$this->log_error($e->getMessage().PHP_EOL);
 				$again = true;
