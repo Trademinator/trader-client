@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "ccxt/ccxt",
-            "version": "1.81.22",
+            "version": "1.81.47",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ccxt/ccxt.git",
-                "reference": "af9085563c28d0783c135db55a4a8ac61a6600e9"
+                "reference": "8990baea464c190f053c54bc9719e2ea4e694a8d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/af9085563c28d0783c135db55a4a8ac61a6600e9",
-                "reference": "af9085563c28d0783c135db55a4a8ac61a6600e9",
+                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/8990baea464c190f053c54bc9719e2ea4e694a8d",
+                "reference": "8990baea464c190f053c54bc9719e2ea4e694a8d",
                 "shasum": ""
             },
             "require": {
@@ -285,7 +285,7 @@
                     "type": "open_collective"
                 }
             ],
-            "time": "2022-05-02T19:51:39+00:00"
+            "time": "2022-05-04T20:05:59+00:00"
         },
         {
             "name": "clue/http-proxy-react",
