@@ -81,7 +81,13 @@ class Orchestor extends \OKayInc\Trademinator{
 			$_exchange_id = key($_next);
 			if ($this->clients[$_exchange_id]->time_passed()){
 				echo $this->colour->convert('%wPooling '.$this->clients[$_exchange_id]->get_symbol().' on '.$this->clients[$_exchange_id]->get_exchange_name().'...');
-				$_result = $this->clients[$_exchange_id]->ask();
+				try{
+					$_result = $this->clients[$_exchange_id]->ask();
+				}
+				catch (Exception $e){
+					$this->log_error($e->getMessage().PHP_EOL);
+					continue;
+				}
 				$this->queue_index[$_exchange_id] = $this->clients[$_exchange_id]->get_next_evaluation();
 				if ($_result){
 					$this->clients[$_exchange_id]->general_profit_report();

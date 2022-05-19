@@ -84,7 +84,7 @@ class Client extends \OKayInc\Trademinator{
 		$response = curl_exec($ch);
 		if ($response === false){
 			// Exception
-			throw new \Exception('Could connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
+			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
 		}
 		else{
 			$_logline = __FILE__.':'.__LINE__.' $response: '.$response;
