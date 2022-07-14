@@ -65,7 +65,8 @@ class Client extends \OKayInc\Trademinator{
 		$this->find_fullfillments();
 		$config = $this->config->get_data(); $exit_code = false; $_logline = '';
 		$mode = $config['mode'];
-		$trademinator_url = $config['trademinator']['url'].'/ask.php?exchange='.$this->exchange_name.'&symbol='.urlencode($this->symbol).'&period=15';
+		$trademinator_url = $config['trademinator']['url'].'/ask.php?exchange='.$this->exchange_name.'&symbol='.$this->symbol.'&period=15';
+		$sell_only = filter_var(array_key_exists('sell_only', $config['exchanges'][$this->exchange_name]['symbols'][$this->symbol])?$config['exchanges'][$this->exchange_name]['symbols'][$this->symbol]['sell_only']:false, FILTER_VALIDATE_BOOLEAN);
 
 		$_logline = __FILE__.':'.__LINE__.' $trademinator_url: '.$trademinator_url;
 		$this->log_debug($_logline);
@@ -82,6 +83,7 @@ class Client extends \OKayInc\Trademinator{
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Trademinator Client '.\OKayInc\Trademinator::$version);
 		$response = curl_exec($ch);
+//echo $response.PHP_EOL;
 		if ($response === false){
 			// Exception
 			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
@@ -110,6 +112,17 @@ class Client extends \OKayInc\Trademinator{
 			}
 
 			echo $this->colour->convert($_colour.strtoupper($signal['action'])).PHP_EOL;
+
+			switch ($signal['action']){
+				case 'buy':
+					if ($sell_only){
+						$_logline = 'BUY condition detected, but only SELLS are allowed in for '.$this->symbol;
+						$this->log_warning($_logline);
+						$this->next_evaluation($signal, $exit_code);
+						return $exit_code;			
+					}
+					break;
+			}
 
 			$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 100;
 			try{
@@ -386,10 +399,17 @@ class Client extends \OKayInc\Trademinator{
 			$this->last_timestamp = time();
 		}
 
+		$this->next_evaluation($signal, $exit_code);
+		return $exit_code;			
+	}
+
+	private function next_evaluation(array $signal, $exit_code = false): int{
 		if ($signal['next_evaluation'] > time()){
 			$this->next_evaluation = $signal['next_evaluation'];
 		}
 		else{
+			$config = $this->config->get_data();
+			$mode = $config['mode'];
 			if (($this->last_action == 'hodl') || ($exit_code == false)){
 				$this->next_evaluation = time() + $config[$mode]['minimum_non_operation_space_in_seconds'];
 			}
@@ -397,7 +417,8 @@ class Client extends \OKayInc\Trademinator{
 				$this->next_evaluation = time() + $config[$mode]['minimum_operation_space_in_seconds'];
 			}
 		}
-		return $exit_code;			
+
+		return $this->next_evaluation;
 	}
 
 	public function trading_summary(){
