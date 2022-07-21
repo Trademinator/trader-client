@@ -1663,7 +1663,7 @@ PRICE=$price";
 			$_logline = __FILE__.':'.__LINE__.' $minimum_transaction_xxx = '.$minimum_transaction_xxx.'; $minimum_transaction_yyy = '.$minimum_transaction_yyy;
 			$this->log_debug($_logline);
 
-			if (is_null($transaction_price)){
+			if (is_null($transaction_price) || ($transaction_price == 0)){
 				$amount_yyy_sell = $amount / $this->last_ticker['bid'];
 				$amount_yyy_buy = $amount / $this->last_ticker['ask'];
 
