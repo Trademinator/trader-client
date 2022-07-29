@@ -82,8 +82,12 @@ class Client extends \OKayInc\Trademinator{
 		curl_setopt($ch, CURLOPT_URL, $trademinator_url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Trademinator Client '.\OKayInc\Trademinator::$version);
-		$response = curl_exec($ch);
-//echo $response.PHP_EOL;
+
+		do{
+			$response = curl_exec($ch);
+			//echo $response.PHP_EOL;
+		} while(curl_errno($ch) == 28);
+
 		if ($response === false){
 			// Exception
 			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
