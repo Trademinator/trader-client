@@ -65,7 +65,8 @@ class Client extends \OKayInc\Trademinator{
 		$this->find_fullfillments();
 		$config = $this->config->get_data(); $exit_code = false; $_logline = '';
 		$mode = $config['mode'];
-		$trademinator_url = $config['trademinator']['url'].'/ask.php?exchange='.$this->exchange_name.'&symbol='.urlencode($this->symbol).'&period=15';
+		$trademinator_url = $config['trademinator']['url'].'/ask.php?exchange='.$this->exchange_name.'&symbol='.$this->symbol.'&period=15';
+		$sell_only = filter_var(array_key_exists('sell_only', $config['exchanges'][$this->exchange_name]['symbols'][$this->symbol])?$config['exchanges'][$this->exchange_name]['symbols'][$this->symbol]['sell_only']:false, FILTER_VALIDATE_BOOLEAN);
 
 		$_logline = __FILE__.':'.__LINE__.' $trademinator_url: '.$trademinator_url;
 		$this->log_debug($_logline);
@@ -81,10 +82,15 @@ class Client extends \OKayInc\Trademinator{
 		curl_setopt($ch, CURLOPT_URL, $trademinator_url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Trademinator Client '.\OKayInc\Trademinator::$version);
-		$response = curl_exec($ch);
+
+		do{
+			$response = curl_exec($ch);
+			//echo $response.PHP_EOL;
+		} while(curl_errno($ch) == 28);
+
 		if ($response === false){
 			// Exception
-			throw new \Exception('Could connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
+			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
 		}
 		else{
 			$_logline = __FILE__.':'.__LINE__.' $response: '.$response;
@@ -92,6 +98,9 @@ class Client extends \OKayInc\Trademinator{
 			
 			curl_close($ch);
 			$signal = json_decode($response, true);
+			if (is_null($signal)){
+				return false;
+			}
 			$mode = $config['mode'];
 			$trade_function = $config['mode'].'_signal';
 
@@ -107,6 +116,17 @@ class Client extends \OKayInc\Trademinator{
 			}
 
 			echo $this->colour->convert($_colour.strtoupper($signal['action'])).PHP_EOL;
+
+			switch ($signal['action']){
+				case 'buy':
+					if ($sell_only){
+						$_logline = 'BUY condition detected, but only SELLS are allowed in for '.$this->symbol;
+						$this->log_warning($_logline);
+						$this->next_evaluation($signal, $exit_code);
+						return $exit_code;			
+					}
+					break;
+			}
 
 			$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 100;
 			try{
@@ -383,10 +403,17 @@ class Client extends \OKayInc\Trademinator{
 			$this->last_timestamp = time();
 		}
 
+		$this->next_evaluation($signal, $exit_code);
+		return $exit_code;			
+	}
+
+	private function next_evaluation(array $signal, $exit_code = false): int{
 		if ($signal['next_evaluation'] > time()){
 			$this->next_evaluation = $signal['next_evaluation'];
 		}
 		else{
+			$config = $this->config->get_data();
+			$mode = $config['mode'];
 			if (($this->last_action == 'hodl') || ($exit_code == false)){
 				$this->next_evaluation = time() + $config[$mode]['minimum_non_operation_space_in_seconds'];
 			}
@@ -394,7 +421,8 @@ class Client extends \OKayInc\Trademinator{
 				$this->next_evaluation = time() + $config[$mode]['minimum_operation_space_in_seconds'];
 			}
 		}
-		return $exit_code;			
+
+		return $this->next_evaluation;
 	}
 
 	public function trading_summary(){
@@ -1147,8 +1175,30 @@ PRICE=$price";
 
 		// ask  -       others selling, me buying
 		// bid  -       others buying, me selling
-		$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
-		$this->balance = $this->exchange->fetch_balance();
+		$again = false;
+		do{
+			try{
+				$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
+				$this->balance = $this->exchange->fetch_balance();
+				$again = false;
+			}
+			catch (\ccxt\AuthenticationError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
+			catch (\ccxt\NetworkError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
+			catch (\ccxt\ExchangeError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
+			catch(Exception $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+				$again = true;
+			}
+		} while($again);
 //echo print_r($this->markets[$this->symbol], true).PHP_EOL;
 		// XXX/YYY  BTC/MXN  BTC/USDT
 		// Prefer to operate in YYY (market currency), if $market doesnt have the information, fall baco to XXX (quote currency)
@@ -1617,7 +1667,7 @@ PRICE=$price";
 			$_logline = __FILE__.':'.__LINE__.' $minimum_transaction_xxx = '.$minimum_transaction_xxx.'; $minimum_transaction_yyy = '.$minimum_transaction_yyy;
 			$this->log_debug($_logline);
 
-			if (is_null($transaction_price)){
+			if (is_null($transaction_price) || ($transaction_price == 0)){
 				$amount_yyy_sell = $amount / $this->last_ticker['bid'];
 				$amount_yyy_buy = $amount / $this->last_ticker['ask'];
 
@@ -1761,7 +1811,12 @@ PRICE=$price";
 		}
 
 		$total_profit = $t_r - $t_i;
-		$total_profit_percentage = 100 * $total_profit / $t_i;
+		if ($t_i > 0){
+			$total_profit_percentage = 100 * $total_profit / $t_i;
+		}
+		else{
+			$total_profit_percentage = 0;
+		}
 		echo '----------------------------------------------'.PHP_EOL;
 		$line = sprintf("%10f %10f %10f %10f\n", $t_i, $t_r, $total_profit, $total_profit_percentage);
 		echo $this->colour->convert('%W'.$line);

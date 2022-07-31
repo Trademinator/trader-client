@@ -24,11 +24,11 @@ class Trademinator{
 		$this->colour = new \Console_Color2();
 		$this->loglevel = $loglevel;
 		$this->logger = new \Monolog\Logger('Trademinator');
-		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_ROOTDIR.'/trademinator.log', 0, Logger::WARNING));
-		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_ROOTDIR.'/trademinator.log', 0, Logger::DEBUG));
-		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_ROOTDIR.'/trademinator.log', 0, Logger::NOTICE));
-		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_ROOTDIR.'/trademinator.err', 0, Logger::ERROR));
-		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_ROOTDIR.'/trademinator.log', 0, Logger::INFO));
+		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_LOGS.'trademinator.log', 0, Logger::WARNING));
+		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_LOGS.'trademinator.log', 0, Logger::DEBUG));
+		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_LOGS.'trademinator.log', 0, Logger::NOTICE));
+		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_LOGS.'trademinator.err', 0, Logger::ERROR));
+		$this->logger->pushHandler(new \Monolog\Handler\RotatingFileHandler(TRADEMINATOR_LOGS.'trademinator.log', 0, Logger::INFO));
 	}
 
 	public function log_info(string $_logline){

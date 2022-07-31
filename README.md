@@ -27,16 +27,17 @@ The client will create .err files, please read them as they contain details to h
 Trademinator has been developed and testing using Bitso and NDAX exchanges (it will work with others if they are supported by the CCXT library). If you want to support the project, please use the following referral links:
 * NDAX https://refer.ndax.io/fQdc
 * BITSO https://bitso.com/register?ref=bul
+* Coinbase https://www.coinbase.com/join/lucio%20_t
 
 ### What are the subscriptions?
 For now (while we are in beta test), all available subscriptions are for free. We currently have the following symbols available for trading:
 * BTC/MXN on Bitso
 * XRP/MXN on Bitso
+* ETH/BTC on CoinbasePro
 * ADA/CAD on NDAX
 * BTC/CAD on NDAX
-* DOGE/cad on NDAX
+* DOGE/CAD on NDAX
 * XRP/CAD on NDAX
-
 
 More free symbols will come.
 
