@@ -26,14 +26,17 @@ class Client extends \OKayInc\Trademinator{
 	private $markets;
 	private ?int $next_evaluation;
 	private $db;
+	private ?array $signal;
 
 	public function __construct(string $exchange_name, string $symbol, \OKayInc\trademinator\config $config, int $loglevel = \OKayInc\Trademinator::INFO|\OKayInc\Trademinator::NOTICE, $db = null){
 		parent::__construct($loglevel);
 
 		echo $this->colour->convert('%GTrademinator Client '.\OKayInc\Trademinator::$version.' for '.$symbol.' on '.$exchange_name).PHP_EOL;
 		// Load config
-		$this->config = $config;
-		$this->config->symplify($exchange_name, $symbol);
+		$this->config = clone $config;
+		//$this->config->symplify($exchange_name, $symbol);
+		$this->config->setExchange_name($exchange_name);
+		$this->config->setSymbol($symbol);
 		$exchange_full_name = '\\ccxt\\'.$exchange_name;
 		$this->exchange = new $exchange_full_name($this->config->get_data()['exchanges'][$exchange_name]);
 		$this->symbol = $symbol;
@@ -46,6 +49,7 @@ class Client extends \OKayInc\Trademinator{
 		$this->markets = $this->exchange->load_markets();
 		$this->next_evaluation = time();
 		$this->my_trades_last_timestamp = null;
+		$this->signal = null;
 
 		if (!is_null($db)){
 			$this->db = &$db;
@@ -60,21 +64,29 @@ class Client extends \OKayInc\Trademinator{
 	}
 
 	public function ask(): bool {
-		$selling_mode = 'memory';
 		$this->migrate_to_db(null);
 		$this->find_fullfillments();
-		$config = $this->config->get_data(); $exit_code = false; $_logline = '';
-		$mode = $config['mode'];
-		$trademinator_url = $config['trademinator']['url'].'/ask.php?exchange='.$this->exchange_name.'&symbol='.$this->symbol.'&period=15';
-		$sell_only = filter_var(array_key_exists('sell_only', $config['exchanges'][$this->exchange_name]['symbols'][$this->symbol])?$config['exchanges'][$this->exchange_name]['symbols'][$this->symbol]['sell_only']:false, FILTER_VALIDATE_BOOLEAN);
+		$config = $this->config->get_data();
+		$exit_code = false; $_logline = '';
+		$mode = $this->config->safe_value('mode', 'trademinator');
+		$strategy = $this->config->safe_value('strategy', 'memory');
+		$url = $this->config->safe_value('url', 'https://signals.trademinator.com');
+		$trademinator_url = $url.'/ask.php?exchange='.$this->exchange_name.'&symbol='.$this->symbol.'&period=15';
+//		$sell_only = filter_var(array_key_exists('sell_only', $config['exchanges'][$this->exchange_name]['symbols'][$this->symbol])?$config['exchanges'][$this->exchange_name]['symbols'][$this->symbol]['sell_only']:false, FILTER_VALIDATE_BOOLEAN);
+		$sell_only = filter_var($this->config->safe_value('sell_only', false), FILTER_VALIDATE_BOOLEAN);
 
 		$_logline = __FILE__.':'.__LINE__.' $trademinator_url: '.$trademinator_url;
 		$this->log_debug($_logline);
 
-		if (!is_null($config[$mode]['subscription_email']) && strlen($config[$mode]['subscription_email']) > 0){
+		$subscription_email = filter_var($this->config->safe_value('subscription_email', ''), FILTER_VALIDATE_EMAIL);
+//		if (!is_null($config[$mode]['subscription_email']) && strlen($config[$mode]['subscription_email']) > 0){
+		if ($subscription_email !== false){
 			$trademinator_url .= '&email='.urlencode($config[$mode]['subscription_email']);
 		}
-		if (!is_null($config['trademinator']['debug']) && ($config['trademinator']['debug'] == true)){
+
+		$debug = filter_var($this->config->safe_value('debug', false), FILTER_VALIDATE_BOOLEAN);
+//		if (!is_null($config['trademinator']['debug']) && ($config['trademinator']['debug'] == true)){
+		if ($debug === true){
 			$trademinator_url .= '&debug=1';
 		}
 
@@ -90,6 +102,7 @@ class Client extends \OKayInc\Trademinator{
 
 		if ($response === false){
 			// Exception
+			$this->signal = null;
 			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
 		}
 		else{
@@ -98,11 +111,11 @@ class Client extends \OKayInc\Trademinator{
 			
 			curl_close($ch);
 			$signal = json_decode($response, true);
+			$this->signal = $signal;				// TODO: change all to point to the variable
 			if (is_null($signal)){
 				return false;
 			}
-			$mode = $config['mode'];
-			$trade_function = $config['mode'].'_signal';
+			$trade_function = $mode.'_signal';
 
 			switch ($signal['action']){
 				case 'buy':
@@ -173,10 +186,12 @@ class Client extends \OKayInc\Trademinator{
 //					$_logline = __FILE__.':'.__LINE__.' $this->last_ticker: '.print_r($this->last_ticker, true);
 //					$this->log_debug($_logline);
 
-					$posible_amount = $this->has_a_buy_to_compensate($this->last_ticker['bid']);
+//					$posible_amount = $this->has_a_buy_to_compensate($this->last_ticker['bid']);
 //					echo PHP_TAB.$this->colour->convert('%p'.'p:'.$this->last_ticker['bid'].' a:'.$posible_amount).PHP_EOL;
 				case 'buy':
-					if ($signal['points'] >= $config[$mode]['minimum_points']){
+					$minimum_points = $this->config->safe_mode('minimum_points', 1);
+//					if ($signal['points'] >= $config[$mode]['minimum_points']){
+					if ($signal['points'] >= $minimum_points){
 						$exit_code = true;
 						try{
 							$this->balance = $this->exchange->fetch_balance();
@@ -241,7 +256,7 @@ class Client extends \OKayInc\Trademinator{
 									}
 								}
 								elseif ($signal['action'] == 'sell' && $current_state == 'buy'){
-									if (($selling_mode == 'averages') && ($this->last_ticker['bid'] > $this->average_transaction)){
+									if (($strategy == 'average') && ($this->last_ticker['bid'] > $this->average_transaction)){
 										// sell, there is a profit opportunity
 
 										$_logline = $this->symbol.' price('.$this->last_ticker['bid'].') is higher than your average transaction('.$this->average_transaction.').';
@@ -261,15 +276,27 @@ class Client extends \OKayInc\Trademinator{
 													2)
 											);
 	
+										$minimun_profit_percentage = $this->config->safe_value('minimun_profit_percentage', 1);
+										$minimun_profit_percentage2 = $this->minimun_profit_percentage();
+										$this->log_info('Suggested minimum profit percentage: '.$minimun_profit_percentage2);
+										if ($minimun_profit_percentage == 'auto'){
+											$minimun_profit_percentage = $minimun_profit_percentage2;
+										}
+										elseif ($minimun_profit_percentage < $minimun_profit_percentage2){
+											$this->log_warning('Minimum suggested percentage profit is '.$minimun_profit_percentage2.'%, your current minimum profit is set to '.$minimun_profit_percentage.'%, you may want to adjust or set it to auto.'.PHP_EOL);
+										}
+
 										if ($earning <= ($trader_fee * 2)){
 											// trader_fee * 2 must be done because the buying part must pay a fee as well
 											$exit_code = false;
 										}
-										elseif( (!is_null($config['trademinator']['minimun_profit_percentage'])) &&
-											($earning < floatval($config['trademinator']['minimun_profit_percentage']))
-											){
+										elseif (($minimun_profit_percentage !== false) && ($earning < floatval($minimun_profit_percentage))){
 											$exit_code = false;
 										}
+//										elseif( (!is_null($config['trademinator']['minimun_profit_percentage'])) &&
+//											($earning < floatval($config['trademinator']['minimun_profit_percentage']))
+//											){
+//										}
 										else{	
 											// sell
 											$amount = $this->calculate_amount('sell');
@@ -283,7 +310,7 @@ class Client extends \OKayInc\Trademinator{
 											}
 										}
 									}
-									elseif ($selling_mode == 'memory'){
+									elseif ($strategy == 'memory'){
 										if (($_amount_to_sell = $this->has_a_buy_to_compensate($this->last_ticker['bid'])) > 0){
 //			if (($_amount_to_sell > 0) && ($_amount_to_sell >= $minimum_transaction_yyy)){
 //											$_amount_to_sell /= $this->last_ticker['bid'];	// price must be in market currency YYY 
@@ -304,7 +331,7 @@ class Client extends \OKayInc\Trademinator{
 									}
 								}
 								elseif ($signal['action'] == 'sell' && $current_state == 'sell'){
-									if (($selling_mode == 'averages') && ($this->last_ticker['bid'] > $this->average_transaction)){
+									if (($strategy == 'average') && ($this->last_ticker['bid'] > $this->average_transaction)){
 										// sell, price has gone up
 
 										$_logline = $this->symbol.' price('.$this->last_ticker['bid'].') is higher than your average transaction('.$this->average_transaction.').';
@@ -320,7 +347,7 @@ class Client extends \OKayInc\Trademinator{
 											$_logline .= '; not enought balance.';
 										}
 									}
-									elseif ($selling_mode == 'memory'){
+									elseif ($strategy == 'memory'){
 										if (($_amount_to_sell = $this->has_a_buy_to_compensate($this->last_ticker['bid'])) > 0){
 //			if (($_amount_to_sell > 0) && ($_amount_to_sell >= $minimum_transaction_yyy)){
 //											$_amount_to_sell /= $this->last_ticker['bid'];	// price must be in market currency YYY 
@@ -383,7 +410,7 @@ class Client extends \OKayInc\Trademinator{
 					}
 					else{
 						// Not enough points
-						$_logline = 'Not enough signal points, minimum is '.$config[$mode]['minimum_points']. ', you got '.$signal['points'];
+						$_logline = 'Not enough signal points, minimum is '.$minimum_points. ', you got '.$signal['points'];
 						$this->log_warning($_logline);
 					}
 					break;
@@ -413,12 +440,15 @@ class Client extends \OKayInc\Trademinator{
 		}
 		else{
 			$config = $this->config->get_data();
-			$mode = $config['mode'];
+			//$mode = $config['mode'];
+			$mode = $this->config->safe_value('mode', 'trademinator');
 			if (($this->last_action == 'hodl') || ($exit_code == false)){
-				$this->next_evaluation = time() + $config[$mode]['minimum_non_operation_space_in_seconds'];
+//				$this->next_evaluation = time() + $config[$mode]['minimum_non_operation_space_in_seconds'];
+				$this->next_evaluation = time() + $this->config->safe_value('minimum_non_operation_space_in_seconds', 300);
 			}
 			else{
-				$this->next_evaluation = time() + $config[$mode]['minimum_operation_space_in_seconds'];
+//				$this->next_evaluation = time() + $config[$mode]['minimum_operation_space_in_seconds'];
+				$this->next_evaluation = time() + $this->config->safe_value('minimum_operation_space_in_seconds', 600);
 			}
 		}
 
@@ -589,6 +619,7 @@ class Client extends \OKayInc\Trademinator{
 	// symbol = XXX/YYY
 	public function calculate_amount($side){
 		$amount = null;
+		$strategy = $this->config->safe_value('strategy', 'memory');
 
 		if (count($this->trading_summary) == 0){
 			$this->trading_summary = $this->trading_summary();
@@ -659,6 +690,13 @@ class Client extends \OKayInc\Trademinator{
 				// We buy conservative
 				$factor = 6;
 
+				if ($strategy == 'average'){
+					if (($this->global_state['last_trade']['side'] == 'buy') && ($this->last_ticker['ask'] < $this->global_state['average_buyings_rate'])){
+						// if buying price is lower than the global average buying rate, we buy more
+						$factor *= 1.5;
+					}
+				}
+
 				// Low the average buying price
 				if (($this->global_state['last_trade']['side'] == 'buy') && ($this->last_ticker['ask'] < $this->global_state['last_trade']['rate'])){
 					// if buying price is lower than last_ticker buying price, we buy more
@@ -666,12 +704,7 @@ class Client extends \OKayInc\Trademinator{
 					$factor *= 1.5;
 				}
 
-				if ($this->last_ticker['ask'] < $this->global_state['average_buyings_rate']){
-					// if buying price is lower than the global average buying rate, we buy more
-					$factor *= 1.5;
-				}
-
-				$percentage = 6 * ($difference / $this->last_trading['average_rate']) * $consecutive;
+				$percentage = $factor * ($difference / $this->last_trading['average_rate']) * $consecutive;
 
 				$_logline = __FILE__.':'.__LINE__.' $percentage = $factor('.$factor.') * ($difference('.$difference.') / $this->last_trading[average_rate]('.$this->last_trading['average_rate'].')) * $consecutive('.$consecutive.') = '.$percentage;
 				$this->log_debug($_logline);
@@ -773,10 +806,10 @@ class Client extends \OKayInc\Trademinator{
 				$this->log_debug($_logline);
 		}
 
-		$minimum_transaction_yyy = floatval($this->markets[$this->symbol]['limits']['cost']['min'])*1.05;   // market currency, 10% because rounding may lower it
+		$minimum_transaction_yyy = floatval($this->markets[$this->symbol]['limits']['cost']['min'])*1.01;   // market currency, 1% because rounding may lower it
 		$minimum_transaction_xxx = ($this->base_currency == 'USDT')?1:0.0001;  // TODO find a better way
 		if (!is_null($this->markets[$this->symbol]['limits']['amount']['min'])){
-			$minimum_transaction_xxx = floatval($this->markets[$this->symbol]['limits']['amount']['min']) * 1.10;               // base currency, 10% because rounding may lower it
+			$minimum_transaction_xxx = floatval($this->markets[$this->symbol]['limits']['amount']['min']) * 1.01;               // base currency, 1% because rounding may lower it
 		}
 
 		$_logline = __FILE__.':'.__LINE__.' $minimum_transaction_xxx = '.$minimum_transaction_xxx.'; $minimum_transaction_yyy = '.$minimum_transaction_yyy;
@@ -871,7 +904,8 @@ class Client extends \OKayInc\Trademinator{
 
 	public function time_passed(): bool{
 		$config = $this->config->get_data();
-		$mode = $config['mode'];
+		//$mode = $config['mode'];
+		$mode = $this->config->safe_value('mode', 'trademinator');
 		$answer = false;
 
 		if (is_null($this->last_action)){
@@ -920,8 +954,10 @@ class Client extends \OKayInc\Trademinator{
 		$exchange_name = $this->exchange->id;
 		list($c, $m) = explode('/', urldecode($this->symbol));
 		$payload = '';
-		if (!is_null($config[$config['mode']]['token'])){
-			$payload = 'TOKEN='.$config[$config['mode']]['token'].PHP_EOL;
+		$token = $this->config->safe_value('token', null);
+//		if (!is_null($config[$config['mode']]['token'])){
+		if (!is_null($token)){
+			$payload = 'TOKEN='.$token.PHP_EOL;
 		}
 
 		$payload .= "EXCHANGE=$exchange_name
@@ -942,7 +978,8 @@ PRICE=$price";
 		);
 
 		$ch = curl_init();
-		$url = $config[$config['mode']]['url'];
+		//$url = $config[$config['mode']]['url'];
+		$url = $this->config->safe_value('url', 'http://127.0.0.1:9001/webhook/trading_view');
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Trademinator Client 1.0');
@@ -951,13 +988,16 @@ PRICE=$price";
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
 		// TODO: Review if this is still valid
+		$minimum_operation_space_in_seconds = $this->config->safe_value('minimum_operation_space_in_seconds', 600);
 		if ($this->exchange->safe_value($this->exchange->options,'fetchMyTrades', false) && (intval($config['trademinator']['minimum_operation_space_in_seconds']) > 0)) {
+//		if ($this->exchange->safe_value($this->exchange->options,'fetchMyTrades', false) && (intval($minimum_operation_space_in_seconds) > 0)) {
 			// $this->my_trades = $this->exchange->fetch_my_trades($this->symbol, $since, $limit, []);
 			$this->get_my_trades(null);
 			$last_trade = end($this->my_trades);
 			if ($last_trade != false){
 				$time_passed = (time() * 1000) - $last_trade['timestamp'];
-				if ($time_passed < $config['trademinator']['minimum_operation_space_in_seconds']){
+//				if ($time_passed < $config['trademinator']['minimum_operation_space_in_seconds']){
+				if ($time_passed < $minimum_operation_space_in_seconds){
 					$dry = true;
 				}
 			}
@@ -989,18 +1029,23 @@ PRICE=$price";
 			if ($side = 'sell'){
 				$cc = $c;
 			}
-			$amount = $this->balance[$cc]['free'] * $config['trademinator']['risk_percentage'] / 100;	// TODO create a dynamic amount based on risk
+			$risk_percentage = $this->config->safe_value('risk_percentage', 25);
+			//$amount = $this->balance[$cc]['free'] * $config['trademinator']['risk_percentage'] / 100;	// TODO create a dynamic amount based on risk
+			$amount = $this->balance[$cc]['free'] * $risk_percentage / 100;	// TODO create a dynamic amount based on risk
 		}
 
 		// TODO: Review if this is still valid
-		if (($this->exchange->has['fetchMyTrades']) && (intval($config['trademinator']['minimum_operation_space_in_seconds']) > 0)) {
+		$minimum_operation_space_in_seconds = $this->config->safe_value('minimum_operation_space_in_seconds', 600);
+//		if (($this->exchange->has['fetchMyTrades']) && (intval($config['trademinator']['minimum_operation_space_in_seconds']) > 0)) {
+		if (($this->exchange->has['fetchMyTrades']) && (intval($minimum_operation_space_in_seconds) > 0)) {
 			$limit = 999; $since = null;
 			// $my_trades = $this->exchange->fetch_my_trades($this->symbol, $since, $limit, []);
 			$this->get_my_trades(null);
 			$last_trade = end($this->my_trades);
 			if ($last_trade != false){
 				$time_passed = (time() * 1000) - $last_trade['timestamp'];
-				if ($time_passed < $config['trademinator']['minimum_operation_space_in_seconds']){
+//				if ($time_passed < $config['trademinator']['minimum_operation_space_in_seconds']){
+				if ($time_passed < $minimum_operation_space_in_seconds){
 					$dry = true;
 				}
 			}
@@ -1031,8 +1076,9 @@ PRICE=$price";
 //		echo "function sell_xxx(float $amount, ?float $price)".PHP_EOL;
 		// amount is in base currency YYY
 		$config = $this->config->get_data();
-		$mode = $config['mode'];
-		$trade_function = $config['mode'].'_signal';
+//		$mode = $config['mode'];
+		$mode = $this->config->safe_value('mode', 'trademinator');
+		$trade_function = $mode.'_signal';
 		$requires_price = $this->exchange->safe_value($this->exchange->options, 'createMarketBuyOrderRequiresPrice', false);
 		if ($requires_price){
 			// if price must be in market currency YYY
@@ -1066,8 +1112,9 @@ PRICE=$price";
 //		echo "function buy_xxx(float $amount, ?float $price)".PHP_EOL;
 		// amount is in base currency YYY
 		$config = $this->config->get_data();
-		$mode = $config['mode'];
-		$trade_function = $config['mode'].'_signal';
+//		$mode = $config['mode'];
+		$mode = $this->config->safe_value('mode', 'trademinator');
+		$trade_function = $mode.'_signal';
 		$requires_price = $this->exchange->safe_value($this->exchange->options, 'createMarketBuyOrderRequiresPrice', false);
 
 		if ($requires_price){
@@ -1096,8 +1143,9 @@ PRICE=$price";
 //		echo "function sell_yyy(float $amount, ?float $price)".PHP_EOL;
 		// amount is in market currency YYY
 		$config = $this->config->get_data();
-		$mode = $config['mode'];
-		$trade_function = $config['mode'].'_signal';
+//		$mode = $config['mode'];
+		$mode = $this->config->safe_value('mode', 'trademinator');
+		$trade_function = $mode.'_signal';
 		$requires_price = $this->exchange->safe_value($this->exchange->options, 'createMarketBuyOrderRequiresPrice', false);
 		if (!$requires_price){
 			// if price must be in market currency YYY
@@ -1131,7 +1179,8 @@ PRICE=$price";
 //		echo "function buy_yyy(float $amount, ?float $price)".PHP_EOL;
 		// amount is in base market currency YYY
 		$config = $this->config->get_data();
-		$trade_function = $config['mode'].'_signal';
+		$mode = $this->config->safe_value('mode', 'trademinator');
+		$trade_function = $mode.'_signal';
 		$requires_price = $this->exchange->safe_value($this->exchange->options, 'createMarketBuyOrderRequiresPrice', false);
 
 		if (!$requires_price){
@@ -1160,8 +1209,10 @@ PRICE=$price";
 	public function offline(array $signal){
 		$config = $this->config->get_data();
 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
-		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;	// 1% => 0.01
+//		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;	// 1% => 0.01
+		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;	// 1% => 0.01
 		$minimum_profit = 1 + max($trader_fee, $min_profit_config);
+		$sell_only = filter_var($this->config->safe_value('sell_only', false), FILTER_VALIDATE_BOOLEAN);
 
 		if (!is_array($this->trading_summary) || (count($this->trading_summary) == 0)){
 			$this->trading_summary = $this->trading_summary();
@@ -1216,8 +1267,7 @@ PRICE=$price";
 		}
 
 		try{
-			$_price1 = $this->last_ticker['bid'] * $minimum_profit;
-			$ceil_price = max($_price1, $signal['high_band']);
+			$ceil_price = max($this->last_ticker['bid'], $signal['high_band']);
 //echo '$ceil_price:'.$ceil_price.PHP_EOL;
 			$_amount_to_sell = $this->has_a_buy_to_compensate($ceil_price);	// in quote currency XXX
 //echo '$_amount_to_sell: '.$_amount_to_sell.PHP_EOL;
@@ -1225,7 +1275,11 @@ PRICE=$price";
 //			$_amount_to_sell2 = $this->convert_balance('sell', $_amount_to_sell);
 //echo '2 $_amount_to_sell: '.$_amount_to_sell.PHP_EOL;
 //echo '2 $_amount_to_sell2: '.$_amount_to_sell2.PHP_EOL;
-			if ($_amount_to_sell > 0){
+			if (!$this->enough_balance_xxx($_amount_to_sell)){
+				$_logline = 'Not enough balace to create an offline selling order.';
+				$this->log_warning($_logline);
+			}
+			elseif ($_amount_to_sell > 0){
 				// Create an offline selling order
 
 				$_logline = 'Creating offline ceil order '.$_amount_to_sell.($mm=='yyy'?'x':'@').floatval($ceil_price);
@@ -1249,32 +1303,44 @@ PRICE=$price";
 			$this->log_error($e->getMessage().PHP_EOL);
 		}
 
-		try{
+		if ($sell_only){
+			$_logline = 'Can not create an offline BUY order for '.$this->symbol.', sell_only flag is true.';
+			$this->log_warning($_logline);
+		}
+		else{
+			try{
 //echo 'IN $minimum_transaction: '.$minimum_transaction.PHP_EOL;
-			$_amount_to_buy = $this->adjust_amount_xxx($minimum_transaction, 'buy', floatval($signal['low_band']));
-			$_amount_to_buy2 = $this->convert_balance('buy', $minimum_transaction);
+				$_amount_to_buy = $this->adjust_amount_xxx($minimum_transaction, 'buy', floatval($signal['low_band']));
+//				$_amount_to_buy2 = $this->convert_balance('buy', $minimum_transaction);
 //echo 'OUT $_amount_to_buy: '.$_amount_to_buy.PHP_EOL;
 //echo 'OUT $_amount_to_buy2: '.$_amount_to_buy2.PHP_EOL;
-			if ($_amount_to_buy > 0){
-				$_logline = 'Creating offline floor order '.$minimum_transaction.($mm=='yyy'?'x':'@').floatval($signal['low_band']);
-				$this->log_notice($_logline);
+//convert $_amount_to_buy from XXX to YYY and verify we have enough YYY
+				$_amount_to_buy_yyy = $this->to_xxx($_amount_to_buy);
+				if (!$this->enough_balance_yyy($_amount_to_buy_yyy)){
+					$_logline = 'Not enough balace to create an offline buying order.';
+					$this->log_warning($_logline);
+				}
+				elseif ($_amount_to_buy > 0){
+					$_logline = 'Creating offline floor order '.$minimum_transaction.($mm=='yyy'?'x':'@').floatval($signal['low_band']);
+					$this->log_notice($_logline);
 
-				$new_order_buy = $this->$buy_fn($_amount_to_buy, floatval($signal['low_band']));
-//				print_r($new_order_buy);
+					$new_order_buy = $this->$buy_fn($_amount_to_buy, floatval($signal['low_band']));
+//					print_r($new_order_buy);
+				}
 			}
-		}
-		catch (\ccxt\AuthenticationError $e) {
-			$this->log_error($e->getMessage().PHP_EOL);
-		}
-		catch (\ccxt\NetworkError $e) {
-			$this->log_error($e->getMessage().PHP_EOL);
-		}
-		catch (\ccxt\ExchangeError $e) {
-			$exit_code = false;
-			$this->log_error($e->getMessage().PHP_EOL);
-		}
-		catch(Exception $e) {
-			$this->log_error($e->getMessage().PHP_EOL);
+			catch (\ccxt\AuthenticationError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+			}
+			catch (\ccxt\NetworkError $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+			}
+			catch (\ccxt\ExchangeError $e) {
+				$exit_code = false;
+				$this->log_error($e->getMessage().PHP_EOL);
+			}
+			catch(Exception $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+			}
 		}
 	}
 
@@ -1402,9 +1468,11 @@ PRICE=$price";
 	}
 
 	public function find_fullfillments(){
-		$config = $this->config->get_data(); $exit_code = false; $_logline = '';
+		$config = $this->config->get_data();
+		$exit_code = false; $_logline = '';
  		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought
-		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;
+//		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;
+		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;
 		$min_profit = 1 + max($trader_fee, $min_profit_config);
 		$_exchange = $this->exchange_name; $_symbol = $this->symbol;
 
@@ -1570,9 +1638,21 @@ PRICE=$price";
 
 	// Asks if you can sell at a given price, answers how much to sell (zero if nothing)
 	public function has_a_buy_to_compensate(float $_price): float{
-		$config = $this->config->get_data(); $exit_code = false; $_logline = '';
+		$config = $this->config->get_data();
+		$exit_code = false; $_logline = '';
 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought
-		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;
+
+		$minimun_profit_percentage = $this->config->safe_value('minimun_profit_percentage', 1);
+		$minimun_profit_percentage2 = $this->minimun_profit_percentage();
+		$this->log_info('Suggested minimum profit percentage: '.$minimun_profit_percentage2);
+		if ($minimun_profit_percentage == 'auto'){
+			$minimun_profit_percentage = $minimun_profit_percentage2;
+		}
+		elseif ($minimun_profit_percentage < $minimun_profit_percentage2){
+			$this->log_warning('Minimum suggested percentage profit is '.$minimun_profit_percentage2.'%, your current minimum profit is set to '.$minimun_profit_percentage.'%, you may want to adjust or set it to auto.');
+		}
+
+		$min_profit_config = floatval($minimun_profit_percentage)/100;
 		$min_profit = 1 + max($trader_fee, $min_profit_config);
 		$amount = 0.0;
 
@@ -1627,6 +1707,8 @@ PRICE=$price";
 			// Enough balance
 			$answer = true;
 		}
+
+		return $answer;
 	}
 
 	public function enough_balance_yyy(float $amount):bool{
@@ -1642,17 +1724,19 @@ PRICE=$price";
 			// Enough balance
 			$answer = true;
 		}
+
+		return $answer;
 	}
 
 	public function adjust_amount_xxx(float $amount, string $side, ?float $transaction_price):float{
 //echo "adjust_amount_xxx(float $amount, string $side, ?float $transaction_price)".PHP_EOL;
 		if ($amount > 0){
 			// These are the minimum transaction amounts XXX/YYY
-			$minimum_transaction_xxx = floatval($this->markets[$this->symbol]['limits']['amount']['min'])*1.05;   // market currency, 5% because rounding may lower it
+			$minimum_transaction_xxx = floatval($this->markets[$this->symbol]['limits']['amount']['min'])*1.01;   // market currency, 1% because rounding may lower it
 			$minimum_transaction_yyy = (in_array($this->base_currency,\OKayInc\Trademinator::$stable_coins))?1:0.0001;  // TODO find a better way
 
 			if (!is_null($this->markets[$this->symbol]['limits']['cost']['min'])){
-				$minimum_transaction_yyy = floatval($this->markets[$this->symbol]['limits']['cost']['min']) * 1.05;               // base currency, 5% because rounding may lower it
+				$minimum_transaction_yyy = floatval($this->markets[$this->symbol]['limits']['cost']['min']) * 1.01;               // base currency, 1% because rounding may lower it
 			}
 
 //echo '$minimum_transaction_xxx: '.$minimum_transaction_xxx.PHP_EOL;
@@ -1715,7 +1799,8 @@ PRICE=$price";
 		}
 		$config = $this->config->get_data();
 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
-		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;	// 1% => 0.01
+//		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;	// 1% => 0.01
+		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;	// 1% => 0.01
 		$minimum_profit = 1 + max($trader_fee, $min_profit_config);
 
 		$allocated_xxx = 0; $price_xxx = 0;
@@ -1820,5 +1905,39 @@ PRICE=$price";
 		echo '----------------------------------------------'.PHP_EOL;
 		$line = sprintf("%10f %10f %10f %10f\n", $t_i, $t_r, $total_profit, $total_profit_percentage);
 		echo $this->colour->convert('%W'.$line);
+	}
+
+
+	public function minimun_profit_percentage(){
+		$min_profit = 1;
+		if (is_array($this->signal)){
+			$min_profit = floatval($this->signal['parameters']['minimun_profit_percentage']);
+		}
+
+		return $min_profit;
+	}
+
+	public function to_yyy(float $amount_xxx): float {
+		if (count($this->last_ticker) == 0){
+			$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
+
+			$_logline = __FILE__.':'.__LINE__.' $this->last_ticker: '.print_r($this->last_ticker, true);
+			$this->log_debug($_logline);
+		}
+
+		$amount_yyy = $amount_xxx / $this->last_ticker['bid'];
+		return $amount_yyy;
+	}
+
+	public function to_xxx(float $amount_yyy): float {
+		if (count($this->last_ticker) == 0){
+			$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
+
+			$_logline = __FILE__.':'.__LINE__.' $this->last_ticker: '.print_r($this->last_ticker, true);
+			$this->log_debug($_logline);
+		}
+
+		$amount_xxx = $amount_yyy * $this->last_ticker['ask'];
+		return $amount_xxx;
 	}
 }

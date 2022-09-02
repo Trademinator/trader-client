@@ -1,6 +1,10 @@
 <?php
 declare(ticks = 1);
 
+if (!verify_extensions()){
+	exit(1);
+}
+
 use OKayInc\Trademinator;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
@@ -37,10 +41,6 @@ switch($debug){
 	default:
 		$_loglevel = Trademinator::INFO | Trademinator::NOTICE;
 		break;
-}
-
-if (!verify_extensions()){
-	exit(1);
 }
 
 if (!is_dir(TRADEMINATOR_LOGS)) {
