@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "ccxt/ccxt",
-            "version": "1.92.71",
+            "version": "1.93.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ccxt/ccxt.git",
-                "reference": "373ba1a5e78986bf495677b9a3817da8c3d3f5f3"
+                "reference": "dfb6938da1e0a7afb33077d6abb6837ceeeb3ca1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/373ba1a5e78986bf495677b9a3817da8c3d3f5f3",
-                "reference": "373ba1a5e78986bf495677b9a3817da8c3d3f5f3",
+                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/dfb6938da1e0a7afb33077d6abb6837ceeeb3ca1",
+                "reference": "dfb6938da1e0a7afb33077d6abb6837ceeeb3ca1",
                 "shasum": ""
             },
             "require": {
@@ -29,7 +29,7 @@
                 "ext-openssl": "*",
                 "ext-pcre": "*",
                 "pear/console_table": "1.3.1",
-                "php": ">=5.5",
+                "php": ">=7.0",
                 "symfony/polyfill-mbstring": "^1.7"
             },
             "suggest": {
@@ -285,30 +285,30 @@
                     "type": "open_collective"
                 }
             ],
-            "time": "2022-08-25T17:23:16+00:00"
+            "time": "2022-09-06T01:30:23+00:00"
         },
         {
             "name": "clue/http-proxy-react",
-            "version": "v1.7.0",
+            "version": "v1.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/clue/reactphp-http-proxy.git",
-                "reference": "8b2f18cd7bc8b2fb383ac24294d28f340a8cfcb8"
+                "reference": "09366dd3e13b36b90f8e47a6acaf5a2c96b79fb5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/clue/reactphp-http-proxy/zipball/8b2f18cd7bc8b2fb383ac24294d28f340a8cfcb8",
-                "reference": "8b2f18cd7bc8b2fb383ac24294d28f340a8cfcb8",
+                "url": "https://api.github.com/repos/clue/reactphp-http-proxy/zipball/09366dd3e13b36b90f8e47a6acaf5a2c96b79fb5",
+                "reference": "09366dd3e13b36b90f8e47a6acaf5a2c96b79fb5",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.3",
-                "react/promise": " ^2.1 || ^1.2.1",
-                "react/socket": "^1.9",
+                "react/promise": "^3 || ^2.1 || ^1.2.1",
+                "react/socket": "^1.12",
                 "ringcentral/psr7": "^1.2"
             },
             "require-dev": {
-                "clue/block-react": "^1.1",
+                "clue/block-react": "^1.5",
                 "phpunit/phpunit": "^9.3 || ^5.7 || ^4.8",
                 "react/event-loop": "^1.2",
                 "react/http": "^1.5"
@@ -348,7 +348,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2021-08-06T13:05:41+00:00"
+            "time": "2022-09-01T14:36:49+00:00"
         },
         {
             "name": "evenement/evenement",
@@ -447,16 +447,16 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "7.4.5",
+            "version": "7.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "1dd98b0564cb3f6bd16ce683cb755f94c10fbd82"
+                "reference": "b50a2a1251152e43f6a37f0fa053e730a67d25ba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/1dd98b0564cb3f6bd16ce683cb755f94c10fbd82",
-                "reference": "1dd98b0564cb3f6bd16ce683cb755f94c10fbd82",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/b50a2a1251152e43f6a37f0fa053e730a67d25ba",
+                "reference": "b50a2a1251152e43f6a37f0fa053e730a67d25ba",
                 "shasum": ""
             },
             "require": {
@@ -471,10 +471,10 @@
                 "psr/http-client-implementation": "1.0"
             },
             "require-dev": {
-                "bamarni/composer-bin-plugin": "^1.4.1",
+                "bamarni/composer-bin-plugin": "^1.8.1",
                 "ext-curl": "*",
                 "php-http/client-integration-tests": "^3.0",
-                "phpunit/phpunit": "^8.5.5 || ^9.3.5",
+                "phpunit/phpunit": "^8.5.29 || ^9.5.23",
                 "psr/log": "^1.1 || ^2.0 || ^3.0"
             },
             "suggest": {
@@ -484,8 +484,12 @@
             },
             "type": "library",
             "extra": {
+                "bamarni-bin": {
+                    "bin-links": true,
+                    "forward-command": false
+                },
                 "branch-alias": {
-                    "dev-master": "7.4-dev"
+                    "dev-master": "7.5-dev"
                 }
             },
             "autoload": {
@@ -563,20 +567,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-06-20T22:16:13+00:00"
+            "time": "2022-08-28T15:39:27+00:00"
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "1.5.1",
+            "version": "1.5.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "fe752aedc9fd8fcca3fe7ad05d419d32998a06da"
+                "reference": "b94b2807d85443f9719887892882d0329d1e2598"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/fe752aedc9fd8fcca3fe7ad05d419d32998a06da",
-                "reference": "fe752aedc9fd8fcca3fe7ad05d419d32998a06da",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/b94b2807d85443f9719887892882d0329d1e2598",
+                "reference": "b94b2807d85443f9719887892882d0329d1e2598",
                 "shasum": ""
             },
             "require": {
@@ -643,20 +647,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-10-22T20:56:57+00:00"
+            "time": "2022-08-28T14:55:35+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "2.4.0",
+            "version": "2.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "13388f00956b1503577598873fffb5ae994b5737"
+                "reference": "69568e4293f4fa993f3b0e51c9723e1e17c41379"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/13388f00956b1503577598873fffb5ae994b5737",
-                "reference": "13388f00956b1503577598873fffb5ae994b5737",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/69568e4293f4fa993f3b0e51c9723e1e17c41379",
+                "reference": "69568e4293f4fa993f3b0e51c9723e1e17c41379",
                 "shasum": ""
             },
             "require": {
@@ -670,15 +674,19 @@
                 "psr/http-message-implementation": "1.0"
             },
             "require-dev": {
-                "bamarni/composer-bin-plugin": "^1.4.1",
+                "bamarni/composer-bin-plugin": "^1.8.1",
                 "http-interop/http-factory-tests": "^0.9",
-                "phpunit/phpunit": "^8.5.8 || ^9.3.10"
+                "phpunit/phpunit": "^8.5.29 || ^9.5.23"
             },
             "suggest": {
                 "laminas/laminas-httphandlerrunner": "Emit PSR-7 responses"
             },
             "type": "library",
             "extra": {
+                "bamarni-bin": {
+                    "bin-links": true,
+                    "forward-command": false
+                },
                 "branch-alias": {
                     "dev-master": "2.4-dev"
                 }
@@ -754,7 +762,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-06-20T21:43:11+00:00"
+            "time": "2022-08-28T14:45:39+00:00"
         },
         {
             "name": "icecave/repr",
@@ -808,16 +816,16 @@
         },
         {
             "name": "longman/telegram-bot",
-            "version": "0.78.0",
+            "version": "0.79.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-telegram-bot/core.git",
-                "reference": "f3fe5ed3b62995ac6ee282cbdd670634329961f7"
+                "reference": "097177ca85627bfa5d0d9e679714a0b1353d49de"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-telegram-bot/core/zipball/f3fe5ed3b62995ac6ee282cbdd670634329961f7",
-                "reference": "f3fe5ed3b62995ac6ee282cbdd670634329961f7",
+                "url": "https://api.github.com/repos/php-telegram-bot/core/zipball/097177ca85627bfa5d0d9e679714a0b1353d49de",
+                "reference": "097177ca85627bfa5d0d9e679714a0b1353d49de",
                 "shasum": ""
             },
             "require": {
@@ -901,7 +909,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-07-03T12:23:17+00:00"
+            "time": "2022-09-04T13:22:41+00:00"
         },
         {
             "name": "monolog/monolog",

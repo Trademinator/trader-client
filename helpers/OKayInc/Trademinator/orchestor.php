@@ -19,9 +19,11 @@ class Orchestor extends \OKayInc\Trademinator{
 
 		$statements = array(
 "CREATE TABLE IF NOT EXISTS my_trades (id TEXT NOT NULL PRIMARY KEY, timestamp INTEGER NOT NULL, exchange TEXT NOT NULL, symbol TEXT NOT NULL, side TEXT CHECK( side IN ('buy','sell') ) NOT NULL, takerOrMaker TEXT CHECK( takerOrMaker IN ('taker','maker') ) NOT NULL, price NUMERIC NOT NULL, amount NUMERIC NOT NULL, cost NUMERIC NOT NULL, missing NUMERIC NOT NULL);",
-"CREATE UNIQUE INDEX IF NOT EXISTS timestamp_exchange_symbol ON my_trades(timestamp,exchange,symbol);",
+"CREATE UNIQUE INDEX IF NOT EXISTS my_trades_exchange_symbol_timestamp_id ON my_trades(exchange, symbol, timestamp, id);",
 "CREATE TABLE IF NOT EXISTS buys_vs_sells ( buy_id TEXT NOT NULL, sell_id TEXT NOT NULL);",
-"CREATE UNIQUE INDEX IF NOT EXISTS buy_id_sell_id on buys_vs_sells(buy_id,sell_id);"
+"CREATE UNIQUE INDEX IF NOT EXISTS buy_id_sell_id on buys_vs_sells(buy_id, sell_id);",
+"CREATE TABLE IF NOT EXISTS deposits (id TEXT NOT NULL PRIMARY KEY, timestamp INTEGER NOT NULL, exchange TEXT NOT NULL, currency TEXT NOT NULL, prices TEXT, missing NUMERIC NOT NULL);",
+"CREATE UNIQUE INDEX IF NOT EXISTS deposits_exchange_symbol_timestamp ON deposits(exchange, currency, timestamp);",
 		);
 
 		$this->db = new \SQLite3(TRADEMINATOR_ROOTDIR.'trademinator.db', SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE);

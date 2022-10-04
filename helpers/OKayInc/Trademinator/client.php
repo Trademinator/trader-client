@@ -28,6 +28,9 @@ class Client extends \OKayInc\Trademinator{
 	private $db;
 	private ?array $signal;
 
+	public static int $total = 0;
+	public static array $total_by_market = [];
+
 	public function __construct(string $exchange_name, string $symbol, \OKayInc\trademinator\config $config, int $loglevel = \OKayInc\Trademinator::INFO|\OKayInc\Trademinator::NOTICE, $db = null){
 		parent::__construct($loglevel);
 
@@ -314,6 +317,7 @@ class Client extends \OKayInc\Trademinator{
 										if (($_amount_to_sell = $this->has_a_buy_to_compensate($this->last_ticker['bid'])) > 0){
 //			if (($_amount_to_sell > 0) && ($_amount_to_sell >= $minimum_transaction_yyy)){
 //											$_amount_to_sell /= $this->last_ticker['bid'];	// price must be in market currency YYY 
+											$_amount_to_sell = $this->adjust_xxx($_amount_to_sell);
 											$new_order_sell = $this->sell_xxx($_amount_to_sell, $this->last_ticker['bid']);
 
 //											$new_order = $this->$trade_function(($market_or_limit?'market':'limit'), 'sell', $_amount_to_sell, $signal['action'] == 'buy'?$this->last_ticker['ask']:$this->last_ticker['bid']);
@@ -351,6 +355,7 @@ class Client extends \OKayInc\Trademinator{
 										if (($_amount_to_sell = $this->has_a_buy_to_compensate($this->last_ticker['bid'])) > 0){
 //			if (($_amount_to_sell > 0) && ($_amount_to_sell >= $minimum_transaction_yyy)){
 //											$_amount_to_sell /= $this->last_ticker['bid'];	// price must be in market currency YYY 
+											$_amount_to_sell = $this->adjust_xxx($_amount_to_sell);
 											$new_order_sell = $this->sell_xxx($_amount_to_sell, $this->last_ticker['bid']);
 //											$new_order = $this->$trade_function(($market_or_limit?'market':'limit'), 'sell', $_amount_to_sell, $signal['action'] == 'buy'?$this->last_ticker['ask']:$this->last_ticker['bid']);
 											$_logline .= '; sell @'.$this->last_ticker['bid']. '; memory sell '.$_amount_to_sell;
@@ -1447,13 +1452,15 @@ PRICE=$price";
 			$_amount = $trade['amount'];	// base currency YYY
 			$_cost = $trade['cost'];	// quote currency XXX  = price * amount
 
-			$sql_verify = "SELECT COUNT(*) AS C FROM my_trades WHERE timestamp = :timestamp AND exchange = :exchange AND symbol = :symbol;";
+			$sql_verify = "SELECT COUNT(*) AS C FROM my_trades WHERE timestamp = :timestamp AND exchange = :exchange AND symbol = :symbol AND id = :id;";
 			$statement = $this->db->prepare($sql_verify);
 			$statement->bindValue(':timestamp', $_timestamp, SQLITE3_INTEGER);
 			$statement->bindValue(':exchange', $_exchange, SQLITE3_TEXT);
 			$statement->bindValue(':symbol', $_symbol, SQLITE3_TEXT);
+			$statement->bindValue(':id', $_id, SQLITE3_TEXT);
 			$result = $statement->execute();
 			$row = $result->fetchArray(SQLITE3_ASSOC);
+
 			if ($row['C'] == 0){
 				$sql_insert = "INSERT INTO my_trades (id, timestamp, exchange, symbol, side, takerOrMaker, price, amount, cost, missing) 
 					VALUES ('$_id', $_timestamp, '$_exchange', '$_symbol', '$_side', '$_taker_or_maker', $_price, $_amount, $_cost, $_amount)";
@@ -1939,5 +1946,21 @@ PRICE=$price";
 
 		$amount_xxx = $amount_yyy * $this->last_ticker['ask'];
 		return $amount_xxx;
+	}
+
+	private function adjust_xxx(float $amount_xxx): float{
+		$amount = $amount_xxx;
+		if ($amount > $this->balance[$this->base_currency]['free']){
+			$amount = $this->balance[$this->base_currency]['free'];
+		}
+		return $amount;
+	}
+
+	private function adjust_yyy(float $amount_yyy): float{
+		$amount = $amount_yyy;
+		if ($amount > $this->balance[$this->market_currency]['free']){
+			$amount = $this->balance[$this->market_currency]['free'];
+		}
+		return $amount;
 	}
 }
