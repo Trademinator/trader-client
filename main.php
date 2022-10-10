@@ -105,6 +105,12 @@ else{
 function verify_extensions():bool {
 	$answer = true;
 	$extensions = ['bcmath','curl','mbstring','json','gmp','sqlite3'];
+	if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+		$prefix = 'php_';
+	}
+	else{
+		$prefix = '';
+	}
 	foreach ($extensions as $extension){
 		if (!verify_specific_extension($extension)){
 			$answer = false;
@@ -115,7 +121,7 @@ function verify_extensions():bool {
 	return $answer;
 }
 
-function verify_specific_extension(string $extension): bool{
+function verify_specific_extension(string $extension, string $prefix = ''): bool{
 	$answer = true;
 	if (!extension_loaded($extension)){
 		if (!dl($prefix . $extension . '.' . PHP_SHLIB_SUFFIX)){
