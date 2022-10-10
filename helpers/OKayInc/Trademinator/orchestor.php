@@ -145,7 +145,7 @@ class Orchestor extends \OKayInc\Trademinator{
 	}
 
 	private function show_motd(){
-		if ((is_null($this->last_motd)) || ((time() - $this->last_motd) > 14400)){
+		if ((is_null($this->last_motd)) || ((time() - $this->last_motd) > (EXCHANGE_MOTD_HOURS_PERIOD * 3600)) || ((rand(0,99) % EXCHANGE_MOTD_PROB) == 0)){
 			$motd = dns_get_record('motd.trademinator.com', DNS_TXT);
 			foreach ($motd as $m){
 				$this->log_info($m['txt']);
