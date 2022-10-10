@@ -3,7 +3,8 @@ Trademinator is a cryptocurrency bot powered by Artificial Intelligence with a C
 
 ## Requirements
 * PHP 7.4+ (PHP 8.1 recommended)
-* API keys rom any supported Exchanges
+* * https://www.microsoft.com/en-gb/download/details.aspx?id=48145 (if you are using Windows)
+* API keys from any supported Exchanges
 * A valid subscription (read the FAQ)
 
 ## Installation
