@@ -17,7 +17,9 @@ class Client extends \OKayInc\Trademinator{
 	private $last_action;
 	private $last_timestamp;				// Last verification
 	private $my_trades;
+	private $my_deposits;
 	private ?int $my_trades_last_timestamp;			// in seconds
+	private ?int $my_deposits_last_timestamp;			// in seconds
 	private $global_state;
 	private $open_orders;
 	private $base_currency;
@@ -52,6 +54,7 @@ class Client extends \OKayInc\Trademinator{
 		$this->markets = $this->exchange->load_markets();
 		$this->next_evaluation = time();
 		$this->my_trades_last_timestamp = null;
+		$this->my_deposits_last_timestamp = null;
 		$this->signal = null;
 
 		if (!is_null($db)){
@@ -75,20 +78,17 @@ class Client extends \OKayInc\Trademinator{
 		$strategy = $this->config->safe_value('strategy', 'memory');
 		$url = $this->config->safe_value('url', 'https://signals.trademinator.com');
 		$trademinator_url = $url.'/ask.php?exchange='.$this->exchange_name.'&symbol='.$this->symbol.'&period=15';
-//		$sell_only = filter_var(array_key_exists('sell_only', $config['exchanges'][$this->exchange_name]['symbols'][$this->symbol])?$config['exchanges'][$this->exchange_name]['symbols'][$this->symbol]['sell_only']:false, FILTER_VALIDATE_BOOLEAN);
 		$sell_only = filter_var($this->config->safe_value('sell_only', false), FILTER_VALIDATE_BOOLEAN);
 
 		$_logline = __FILE__.':'.__LINE__.' $trademinator_url: '.$trademinator_url;
 		$this->log_debug($_logline);
 
 		$subscription_email = filter_var($this->config->safe_value('subscription_email', ''), FILTER_VALIDATE_EMAIL);
-//		if (!is_null($config[$mode]['subscription_email']) && strlen($config[$mode]['subscription_email']) > 0){
 		if ($subscription_email !== false){
 			$trademinator_url .= '&email='.urlencode($config[$mode]['subscription_email']);
 		}
 
 		$debug = filter_var($this->config->safe_value('debug', false), FILTER_VALIDATE_BOOLEAN);
-//		if (!is_null($config['trademinator']['debug']) && ($config['trademinator']['debug'] == true)){
 		if ($debug === true){
 			$trademinator_url .= '&debug=1';
 		}
@@ -106,7 +106,10 @@ class Client extends \OKayInc\Trademinator{
 		if ($response === false){
 			// Exception
 			$this->signal = null;
-			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
+//			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
+			$_logline = 'Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')';
+			$this->log_warning($_logline);
+
 		}
 		else{
 			$_logline = __FILE__.':'.__LINE__.' $response: '.$response;
@@ -193,7 +196,6 @@ class Client extends \OKayInc\Trademinator{
 //					echo PHP_TAB.$this->colour->convert('%p'.'p:'.$this->last_ticker['bid'].' a:'.$posible_amount).PHP_EOL;
 				case 'buy':
 					$minimum_points = $this->config->safe_mode('minimum_points', 1);
-//					if ($signal['points'] >= $config[$mode]['minimum_points']){
 					if ($signal['points'] >= $minimum_points){
 						$exit_code = true;
 						try{
@@ -448,11 +450,9 @@ class Client extends \OKayInc\Trademinator{
 			//$mode = $config['mode'];
 			$mode = $this->config->safe_value('mode', 'trademinator');
 			if (($this->last_action == 'hodl') || ($exit_code == false)){
-//				$this->next_evaluation = time() + $config[$mode]['minimum_non_operation_space_in_seconds'];
 				$this->next_evaluation = time() + $this->config->safe_value('minimum_non_operation_space_in_seconds', 300);
 			}
 			else{
-//				$this->next_evaluation = time() + $config[$mode]['minimum_operation_space_in_seconds'];
 				$this->next_evaluation = time() + $this->config->safe_value('minimum_operation_space_in_seconds', 600);
 			}
 		}
@@ -909,7 +909,6 @@ class Client extends \OKayInc\Trademinator{
 
 	public function time_passed(): bool{
 		$config = $this->config->get_data();
-		//$mode = $config['mode'];
 		$mode = $this->config->safe_value('mode', 'trademinator');
 		$answer = false;
 
@@ -960,7 +959,6 @@ class Client extends \OKayInc\Trademinator{
 		list($c, $m) = explode('/', urldecode($this->symbol));
 		$payload = '';
 		$token = $this->config->safe_value('token', null);
-//		if (!is_null($config[$config['mode']]['token'])){
 		if (!is_null($token)){
 			$payload = 'TOKEN='.$token.PHP_EOL;
 		}
@@ -983,7 +981,6 @@ PRICE=$price";
 		);
 
 		$ch = curl_init();
-		//$url = $config[$config['mode']]['url'];
 		$url = $this->config->safe_value('url', 'http://127.0.0.1:9001/webhook/trading_view');
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -995,13 +992,11 @@ PRICE=$price";
 		// TODO: Review if this is still valid
 		$minimum_operation_space_in_seconds = $this->config->safe_value('minimum_operation_space_in_seconds', 600);
 		if ($this->exchange->safe_value($this->exchange->options,'fetchMyTrades', false) && (intval($config['trademinator']['minimum_operation_space_in_seconds']) > 0)) {
-//		if ($this->exchange->safe_value($this->exchange->options,'fetchMyTrades', false) && (intval($minimum_operation_space_in_seconds) > 0)) {
 			// $this->my_trades = $this->exchange->fetch_my_trades($this->symbol, $since, $limit, []);
 			$this->get_my_trades(null);
 			$last_trade = end($this->my_trades);
 			if ($last_trade != false){
 				$time_passed = (time() * 1000) - $last_trade['timestamp'];
-//				if ($time_passed < $config['trademinator']['minimum_operation_space_in_seconds']){
 				if ($time_passed < $minimum_operation_space_in_seconds){
 					$dry = true;
 				}
@@ -1035,13 +1030,11 @@ PRICE=$price";
 				$cc = $c;
 			}
 			$risk_percentage = $this->config->safe_value('risk_percentage', 25);
-			//$amount = $this->balance[$cc]['free'] * $config['trademinator']['risk_percentage'] / 100;	// TODO create a dynamic amount based on risk
 			$amount = $this->balance[$cc]['free'] * $risk_percentage / 100;	// TODO create a dynamic amount based on risk
 		}
 
 		// TODO: Review if this is still valid
 		$minimum_operation_space_in_seconds = $this->config->safe_value('minimum_operation_space_in_seconds', 600);
-//		if (($this->exchange->has['fetchMyTrades']) && (intval($config['trademinator']['minimum_operation_space_in_seconds']) > 0)) {
 		if (($this->exchange->has['fetchMyTrades']) && (intval($minimum_operation_space_in_seconds) > 0)) {
 			$limit = 999; $since = null;
 			// $my_trades = $this->exchange->fetch_my_trades($this->symbol, $since, $limit, []);
@@ -1049,7 +1042,6 @@ PRICE=$price";
 			$last_trade = end($this->my_trades);
 			if ($last_trade != false){
 				$time_passed = (time() * 1000) - $last_trade['timestamp'];
-//				if ($time_passed < $config['trademinator']['minimum_operation_space_in_seconds']){
 				if ($time_passed < $minimum_operation_space_in_seconds){
 					$dry = true;
 				}
@@ -1081,7 +1073,6 @@ PRICE=$price";
 //		echo "function sell_xxx(float $amount, ?float $price)".PHP_EOL;
 		// amount is in base currency YYY
 		$config = $this->config->get_data();
-//		$mode = $config['mode'];
 		$mode = $this->config->safe_value('mode', 'trademinator');
 		$trade_function = $mode.'_signal';
 		$requires_price = $this->exchange->safe_value($this->exchange->options, 'createMarketBuyOrderRequiresPrice', false);
@@ -1117,7 +1108,6 @@ PRICE=$price";
 //		echo "function buy_xxx(float $amount, ?float $price)".PHP_EOL;
 		// amount is in base currency YYY
 		$config = $this->config->get_data();
-//		$mode = $config['mode'];
 		$mode = $this->config->safe_value('mode', 'trademinator');
 		$trade_function = $mode.'_signal';
 		$requires_price = $this->exchange->safe_value($this->exchange->options, 'createMarketBuyOrderRequiresPrice', false);
@@ -1148,7 +1138,6 @@ PRICE=$price";
 //		echo "function sell_yyy(float $amount, ?float $price)".PHP_EOL;
 		// amount is in market currency YYY
 		$config = $this->config->get_data();
-//		$mode = $config['mode'];
 		$mode = $this->config->safe_value('mode', 'trademinator');
 		$trade_function = $mode.'_signal';
 		$requires_price = $this->exchange->safe_value($this->exchange->options, 'createMarketBuyOrderRequiresPrice', false);
@@ -1214,7 +1203,6 @@ PRICE=$price";
 	public function offline(array $signal){
 		$config = $this->config->get_data();
 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
-//		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;	// 1% => 0.01
 		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;	// 1% => 0.01
 		$minimum_profit = 1 + max($trader_fee, $min_profit_config);
 		$sell_only = filter_var($this->config->safe_value('sell_only', false), FILTER_VALIDATE_BOOLEAN);
@@ -1366,7 +1354,82 @@ PRICE=$price";
 		$this->log_notice($_logline);
 	}
 
+	public function get_my_deposits(?int $since): array{
+		if (!$this->exchange->has['fetchDeposits']) {
+			throw new Exception ($this->exchange->id . ' does not have the fetch_deposits method');
+			return [];
+		}
+
+		$_query = false;
+
+		if (is_null($this->my_deposits_last_timestamp)){
+			$_query = true;
+		}
+		else{
+			$_diff = time() - $this->my_deposits_last_timestamp;
+			if($_diff > 60){
+				$_query = true;
+			}
+		}
+
+		if ($_query){
+			$all_deposits = array(); $params['sort'] = 'asc'; $my_deposits = array();
+			while ($since < $this->exchange->milliseconds()){
+				try{
+					// TODO: add try/catch
+					$my_deposits = $this->exchange->fetch_deposits($this->base_currency, $since, null, $params);	// index 0 is the first trade
+					$this->my_deposits_last_timestamp = time();
+					if (count($my_deposits)){
+						$selected_deposit = array();
+						$first_deposit = reset($my_deposits);
+						$last_deposit = end($my_deposits);
+						if ($first_deposit['timestamp'] > $last_deposit['timestamp']){
+							$selected_deposit = $first_deposit;
+						}
+						else{
+							$selected_deposit = $last_deposit;
+						}
+						$since = $selected_deposit['timestamp'] + 1;
+						$all_deposits = array_merge($all_deposits, $my_deposits);
+						$params['marker'] = $selected_deposit['id'];
+					}
+					else{
+						break;
+					}
+				}
+				catch (\ccxt\AuthenticationError $e) {
+					// handle authentication error here
+					$this->log_error($e->getMessage().PHP_EOL);
+				}
+				catch (\ccxt\NetworkError $e) {
+					// your code to handle the network code and retries here
+					$this->log_error($e->getMessage().PHP_EOL);
+				}
+				catch (\ccxt\ExchangeError $e) {
+					// your code to handle an exchange error
+					$this->log_error($e->getMessage().PHP_EOL);
+				}
+				catch(Exception $e) {
+					$this->log_error($e->getMessage().PHP_EOL);
+				}
+			}
+
+			$_logline = __FILE__.':'.__LINE__.' $all_deposits = '.print_r($all_deposits, true);
+			$this->log_debug($_logline);
+
+			usort($all_deposits, function ($item1, $item2) { return $item1['timestamp'] <=> $item2['timestamp'];});
+			$this->my_deposits = $all_deposits;
+		}
+		return $this->my_deposits;
+	}
+
+
 	private function get_my_trades(?int $since): array{
+		if (!$this->exchange->has['fetchMyTrades']) {
+			throw new Exception ($this->exchange->id . ' does not have the fetch_my_trades method');
+			return [];
+		}
+
 		$_query = false;
 
 		if (is_null($this->my_trades_last_timestamp)){
@@ -1430,16 +1493,20 @@ PRICE=$price";
 		return $this->my_trades;
 	}
 
+	// Functions captures all the trades into the db for future analysis
 	public function migrate_to_db(?int $since){
 		if (is_null($this->db) || empty($this->db)){
 			throw new \Exception('DB handler not set.');
 		}
 
 		// TODO: review if this is needed
-//		if (is_null($since)){
-//			$since = time() - (365 * 86400);
-//			$since *= 1000;				// miliseconds
-//		}
+		if (is_null($since)){
+			$since2 = time() - (365 * 86400);
+			$since2 *= 1000;				// miliseconds
+		}
+		else{
+			$since2 = $since;
+		}
 
 		$all_trades = $this->get_my_trades($since);
 		$_exchange = $this->exchange_name; $_symbol = $this->symbol;
@@ -1472,13 +1539,15 @@ PRICE=$price";
 				}
 			}
 		}
+
+//		$this->get_my_deposits($since2);
+//		print_r($this->my_deposits);
 	}
 
 	public function find_fullfillments(){
 		$config = $this->config->get_data();
 		$exit_code = false; $_logline = '';
  		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought
-//		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;
 		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;
 		$min_profit = 1 + max($trader_fee, $min_profit_config);
 		$_exchange = $this->exchange_name; $_symbol = $this->symbol;
@@ -1806,7 +1875,6 @@ PRICE=$price";
 		}
 		$config = $this->config->get_data();
 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
-//		$min_profit_config = floatval($config['trademinator']['minimun_profit_percentage'])/100;	// 1% => 0.01
 		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;	// 1% => 0.01
 		$minimum_profit = 1 + max($trader_fee, $min_profit_config);
 

@@ -14,7 +14,7 @@ class Trademinator{
 	const DEBUG 	= 0b00010000;
 
 	public static $stable_coins = ['USD', 'USDT', 'USDC', 'CAD', 'EUR'];
-	public static $version = '0.9.2';
+	public static $version = '0.9.3';
 
 	protected $colour;
 	protected $loglevel;

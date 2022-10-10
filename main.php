@@ -146,8 +146,10 @@ function verify_version(){
 	$a = dns_get_record('version.trademinator.com', DNS_TXT);
 	$aa = dns_get_record('download.trademinator.com', DNS_TXT);
 
-	if (version_compare(\OKayInc\Trademinator::$version, $a[0]['txt']) == -1){
-		echo 'It is time to update. You are currently running Trademinator '.\OKayInc\Trademinator::$version.'. Latest release is '.$a[0]['txt'].PHP_EOL;
-		echo 'You can download latest release from '.$aa[0]['txt'].PHP_EOL;
+	if (sizeof($a) > 0){
+		if (version_compare(\OKayInc\Trademinator::$version, $a[0]['txt']) == -1){
+			echo 'It is time to update. You are currently running Trademinator '.\OKayInc\Trademinator::$version.'. Latest release is '.$a[0]['txt'].PHP_EOL;
+			echo 'You can download latest release from '.$aa[0]['txt'].PHP_EOL;
+		}
 	}
 }

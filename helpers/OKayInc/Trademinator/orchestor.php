@@ -9,10 +9,12 @@ class Orchestor extends \OKayInc\Trademinator{
 	private \OKayInc\Trademinator\Config $config;
 	private array $queue_index;
 	private $db;
+	private $last_motd;
 
 	function __construct(?string $filename, int $loglevel = \OKayInc\Trademinator::INFO|\OKayInc\Trademinator::NOTICE){
 		parent::__construct($loglevel);
 
+		$this->last_motd = null;
 		echo $this->colour->convert('%GTrademinator Orchestor '.\OKayInc\Trademinator::$version).PHP_EOL;
 		echo $this->colour->convert('%wLoading configuration file...').PHP_EOL;
 		$this->config = new \okayinc\trademinator\config($filename);
@@ -33,6 +35,7 @@ class Orchestor extends \OKayInc\Trademinator{
 		$this->db->exec('PRAGMA fullfsync = true;');
 		$this->db->exec('PRAGMA checkpoint_fullfsync = true;');
 		foreach ($statements as $statement){
+
 			if ($this->loglevel & \OKayInc\Trademinator::DEBUG){
 				$_logline = __FILE__.':'.__LINE__.' $statement: '.$statement.PHP_EOL;
 				$this->logger->debug($_logline);
@@ -66,7 +69,6 @@ class Orchestor extends \OKayInc\Trademinator{
 		foreach($_exchanges as $_index){
 			list($symbol, $exchange_name) = explode('@', $_index);
 			$this->clients[$_index] = new \okayinc\trademinator\client($exchange_name, $symbol, $this->config, $loglevel, $this->db);
-			$this->clients[$_index]->migrate_to_db(null);
 			$this->queue_index[$_index] = $this->clients[$_index]->get_next_evaluation();
 		}
 	}
@@ -79,6 +81,7 @@ class Orchestor extends \OKayInc\Trademinator{
 		}
 		$j = 1; $again = true;
 		do {
+			$this->show_motd();
 			$_next =  array_slice($this->queue_index, 0, 1, true);	// Next pair to check
 			$_exchange_id = key($_next);
 			if ($this->clients[$_exchange_id]->time_passed()){
@@ -139,5 +142,15 @@ class Orchestor extends \OKayInc\Trademinator{
 						echo $e->getMessage().PHP_EOL;
 					}
 			}
+	}
+
+	private function show_motd(){
+		if ((is_null($this->last_motd)) || ((time() - $this->last_motd) > 14400)){
+			$motd = dns_get_record('motd.trademinator.com', DNS_TXT);
+			foreach ($motd as $m){
+				$this->log_info($m['txt']);
+			}
+			$this->last_motd = time();
+		}
 	}
 }

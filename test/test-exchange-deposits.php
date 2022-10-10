@@ -10,16 +10,19 @@ defined("TRADEMINATOR_LOGS") or define("TRADEMINATOR_LOGS", __DIR__ . DIRECTORY_
 $fn = file_exists('trademinator.cfg')?'trademinator.cfg':null;
 
 $c = new \OKayInc\Trademinator\Config($fn);
-$e = new \okayinc\trademinator\client('bitso', 'BTC/USD', $c, Trademinator::DEBUG|Trademinator::ERROR|Trademinator::WARNING|Trademinator::NOTICE|Trademinator::INFO);
-$states = $e->trading_summary();
-$global_state = $e->global_state();
+$e = new \okayinc\trademinator\client('ndax', 'DOGE/CAD', $c, Trademinator::DEBUG|Trademinator::ERROR|Trademinator::WARNING|Trademinator::NOTICE|Trademinator::INFO);
+//$states = $e->trading_summary();
+//$global_state = $e->global_state();
 
 //print_r($states);
 //print_r($global_state);
 
 //print_r($e->get_exchange()->fetch_currencies());
-print_r($e->get_exchange()->fetch_markets());
-$markets = $e->get_exchange()->load_markets();
-echo implode(', ', array_keys($markets)).PHP_EOL;
+//print_r($e->get_exchange()->fetch_markets());
+//$markets = $e->get_exchange()->load_markets();
+//echo implode(', ', array_keys($markets)).PHP_EOL;
 
-print_r($e->get_exchange()->fetch_deposits());
+$since = strtotime('2010-01-01 -1 year') * 1000;
+print_r($e->get_exchange()->fetch_deposits('DOGE', $since, null, []));
+//$d = $e->get_my_deposits($since);
+print_r($d);
