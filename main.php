@@ -107,12 +107,14 @@ function verify_extensions():bool {
 	$extensions = ['bcmath','curl','mbstring','json','gmp','sqlite3'];
 	if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
 		$prefix = 'php_';
+		$sufix = '';
 	}
 	else{
 		$prefix = '';
+		$sufix = '.'.PHP_SHLIB_SUFFIX;
 	}
 	foreach ($extensions as $extension){
-		if (!verify_specific_extension($extension)){
+		if (!verify_specific_extension($extension, $prefix, $sufix)){
 			$answer = false;
 			break;
 		}
@@ -121,10 +123,10 @@ function verify_extensions():bool {
 	return $answer;
 }
 
-function verify_specific_extension(string $extension, string $prefix = ''): bool{
+function verify_specific_extension(string $extension, string $prefix = '', string $sufix = ''): bool{
 	$answer = true;
 	if (!extension_loaded($extension)){
-		if (!dl($prefix . $extension . '.' . PHP_SHLIB_SUFFIX)){
+		if (!dl($prefix . $extension . $sufix)){
 			$answer = false;
 			echo 'Could not load extension '.$extension.'. Please fix this isse and try again.'.PHP_EOL;
 		}
