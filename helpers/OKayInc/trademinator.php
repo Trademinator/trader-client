@@ -14,7 +14,7 @@ class Trademinator{
 	const DEBUG 	= 0b00010000;
 
 	public static $stable_coins = ['USD', 'USDT', 'USDC', 'CAD', 'EUR'];
-	public static $version = '0.9.2';
+	public static $version = '0.9.3';
 
 	protected $colour;
 	protected $loglevel;
@@ -68,3 +68,5 @@ class Trademinator{
 
 defined("PHP_TAB") or define("PHP_TAB", "\t");
 defined("EXCHANGE_ROUND_DECIMALS") or define('EXCHANGE_ROUND_DECIMALS', 8);
+defined("EXCHANGE_MOTD_PROB") or define('EXCHANGE_MOTD_PROB', 4);
+defined("EXCHANGE_MOTD_HOURS_PERIOD") or define('EXCHANGE_MOTD_HOURS_PERIOD', 4);

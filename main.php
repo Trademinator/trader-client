@@ -1,6 +1,10 @@
 <?php
 declare(ticks = 1);
 
+if (!verify_extensions()){
+	exit(1);
+}
+
 use OKayInc\Trademinator;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
@@ -21,6 +25,8 @@ $times = array_key_exists('times', $options)?intval($options['times']):null;
 $command = array_key_exists('command', $options)?($options['command']):null;
 $yes = array_key_exists('yes', $options);
 
+verify_version();
+
 $_loglevel = 0;
 switch($debug){
 	case 'DEBUG':
@@ -37,10 +43,6 @@ switch($debug){
 	default:
 		$_loglevel = Trademinator::INFO | Trademinator::NOTICE;
 		break;
-}
-
-if (!verify_extensions()){
-	exit(1);
 }
 
 if (!is_dir(TRADEMINATOR_LOGS)) {
@@ -138,4 +140,16 @@ function ask_bool($prompt, ?bool $default): bool {
 		$answer = filter_var($line, FILTER_VALIDATE_BOOLEAN, $options);		// Bool has a different logic
 	}while (is_null($answer));
 	return $answer;
+}
+
+function verify_version(){
+	$a = dns_get_record('version.trademinator.com', DNS_TXT);
+	$aa = dns_get_record('download.trademinator.com', DNS_TXT);
+
+	if (sizeof($a) > 0){
+		if (version_compare(\OKayInc\Trademinator::$version, $a[0]['txt']) == -1){
+			echo 'It is time to update. You are currently running Trademinator '.\OKayInc\Trademinator::$version.'. Latest release is '.$a[0]['txt'].PHP_EOL;
+			echo 'You can download latest release from '.$aa[0]['txt'].PHP_EOL;
+		}
+	}
 }

@@ -8,6 +8,8 @@ class Config {
 	const force_lowercase = 1;
 	const force_uppercase = 2;
 	private ?string $filename;
+	private ?string $exchange_name = null;
+	private ?string $symbol = null;
 
 	function __construct(?string $filename = null){
 		// Creates Default Configuration
@@ -293,26 +295,41 @@ class Config {
 		return $s;
 	}
 
-	function safe_value(string $exchange_name, string $symbol, string $key, string $default){
-		$mode = $this->data['data'];
+	function safe_value(string $key, $default){
+		if (is_null($this->exchange_name) || is_null($this->symbol)){
+			throw new \Exception('Exchange Name or Symbol is not set.');
+		}
+		else{
+			return $this->safe_value2($this->exchange_name, $this->symbol, $key, $default);
+		}
+	}
+
+	function safe_value2(string $exchange_name, string $symbol, string $key, $default){
+		$mode = $this->data['mode'];
 		list($base_currency, $market_currency) =  explode('/', $symbol);
 
 
-		if (array_key_exists($key, $this->data[$mode]['exchanges'][$exchange_name]['symbols'][$symbol])){
+		if (array_key_exists($key, $this->data['exchanges'][$exchange_name]['symbols'][$symbol])){
 			// Look Symbol
-			$answer = $this->data[$mode]['exchanges'][$exchange_name]['symbols'][$symbol][$key];
+			$answer = $this->data['exchanges'][$exchange_name]['symbols'][$symbol][$key];
 		}
-		elseif (array_key_exists($key, $this->data[$mode]['exchanges'][$exchange_name]['symbols']['*/'.$market_currency])){
+		elseif (
+			(array_key_exists('*/'.$market_currency, $this->data['exchanges'][$exchange_name]['symbols'])) && 
+			(array_key_exists($key, $this->data['exchanges'][$exchange_name]['symbols']['*/'.$market_currency]))){
 			// Look *Symbol
-			$answer = $this->data[$mode]['exchanges'][$exchange_name]['symbols']['*/'.$market_currency][$key];
+			$answer = $this->data[$mode][$exchange_name]['symbols']['*/'.$market_currency][$key];
 		}
-		elseif (array_key_exists($key, $this->data[$mode]['exchanges'][$exchange_name])){
+		elseif (array_key_exists($key, $this->data['exchanges'][$exchange_name])){
 			// Look Exchange
-			$answer = $this->data[$mode]['exchanges'][$exchange_name][$key];
+			$answer = $this->data['exchanges'][$exchange_name][$key];
 		}
 		elseif (array_key_exists($key, $this->data[$mode])){
-			// Look General
+			// Look General inside mode
 			$answer = $this->data[$mode][$key];
+		}
+		elseif (array_key_exists($key, $this->data)){
+			// Look out of mode
+			$answer = $this->data[$key];
 		}
 		else{
 			$answer = $default;
