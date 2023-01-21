@@ -187,7 +187,28 @@ class Client extends \OKayInc\Trademinator{
 
 			switch ($signal['action']){
 				case 'sell':
-					$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
+					try{
+						$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
+					}
+					catch (\ccxt\AuthenticationError $e) {
+						// handle authentication error here
+						$this->log_error($e->getMessage().PHP_EOL);
+					}
+					catch (\ccxt\NetworkError $e) {
+						// your code to handle the network code and retries here
+						$this->log_error($e->getMessage().PHP_EOL);
+					}
+					catch (\ccxt\ExchangeError $e) {
+						// your code to handle an exchange error
+						$exit_code = false;
+						$this->log_error($e->getMessage().PHP_EOL);
+					}
+					catch (\ccxt\ExchangeNotAvailable $e){
+						$this->log_error($e->getMessage().PHP_EOL);
+					}
+					catch(Exception $e) {
+						$this->log_error($e->getMessage().PHP_EOL);
+					}
 
 //					$_logline = __FILE__.':'.__LINE__.' $this->last_ticker: '.print_r($this->last_ticker, true);
 //					$this->log_debug($_logline);
@@ -244,7 +265,11 @@ class Client extends \OKayInc\Trademinator{
 								$this->get_my_trades(null);
 								$last_trade = end($this->my_trades);
 
-								if (($signal['action'] == 'buy') && ($current_state == 'buy') && (floatval($this->last_ticker['ask']) < floatval($last_trade['price']))){
+								if (	($signal['action'] == 'buy') && 
+									($current_state == 'buy') && 
+									(floatcmp(floatval($this->last_ticker['ask']), floatval($last_trade['price'])) == -1)
+								){
+									//(floatval($this->last_ticker['ask']) < floatval($last_trade['price']))){
 									// buy, price is still cheaper than the average buying price
 
 									$_logline = $this->symbol.' price('.$this->last_ticker['ask'].') is lower than your average transaction('.$this->average_transaction.') and last purchase('.$last_trade['price'].').';
@@ -261,7 +286,10 @@ class Client extends \OKayInc\Trademinator{
 									}
 								}
 								elseif ($signal['action'] == 'sell' && $current_state == 'buy'){
-									if (($strategy == 'average') && ($this->last_ticker['bid'] > $this->average_transaction)){
+									if (	($strategy == 'average') && 
+										(floatcmp(floatval($this->last_ticker['bid']), floatval($this->average_transaction)) == 1)
+									){
+										//($this->last_ticker['bid'] > $this->average_transaction)){
 										// sell, there is a profit opportunity
 
 										$_logline = $this->symbol.' price('.$this->last_ticker['bid'].') is higher than your average transaction('.$this->average_transaction.').';
@@ -337,7 +365,10 @@ class Client extends \OKayInc\Trademinator{
 									}
 								}
 								elseif ($signal['action'] == 'sell' && $current_state == 'sell'){
-									if (($strategy == 'average') && ($this->last_ticker['bid'] > $this->average_transaction)){
+									if (	($strategy == 'average') && 
+										(floatcmp(floatval($this->last_ticker['bid']), floatval($this->average_transaction)) == 1)
+									){
+										//($this->last_ticker['bid'] > $this->average_transaction)){
 										// sell, price has gone up
 
 										$_logline = $this->symbol.' price('.$this->last_ticker['bid'].') is higher than your average transaction('.$this->average_transaction.').';
@@ -354,8 +385,10 @@ class Client extends \OKayInc\Trademinator{
 										}
 									}
 									elseif ($strategy == 'memory'){
-										if (($_amount_to_sell = $this->has_a_buy_to_compensate($this->last_ticker['bid'])) > 0){
-//			if (($_amount_to_sell > 0) && ($_amount_to_sell >= $minimum_transaction_yyy)){
+										$_amount_to_sell = $this->has_a_buy_to_compensate(floatval($this->last_ticker['bid']));
+										if (floatcmp(floatval($_amount_to_sell), 0) == 1){
+///										($_amount_to_sell = $this->has_a_buy_to_compensate($this->last_ticker['bid'])) > 0){
+//										if (($_amount_to_sell > 0) && ($_amount_to_sell >= $minimum_transaction_yyy)){
 //											$_amount_to_sell /= $this->last_ticker['bid'];	// price must be in market currency YYY 
 											$_amount_to_sell = $this->adjust_xxx($_amount_to_sell);
 											$new_order_sell = $this->sell_xxx($_amount_to_sell, $this->last_ticker['bid']);
@@ -1202,7 +1235,7 @@ PRICE=$price";
 	// This function calculates the minimum selling price taking in account all wallet factors
 	public function offline(array $signal){
 		$config = $this->config->get_data();
-		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
+		$trader_fee = floatval($this->markets[$this->symbol]['taker']) + floatval($this->markets[$this->symbol]['maker']);				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
 		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;	// 1% => 0.01
 		$minimum_profit = 1 + max($trader_fee, $min_profit_config);
 		$sell_only = filter_var($this->config->safe_value('sell_only', false), FILTER_VALIDATE_BOOLEAN);
@@ -1547,7 +1580,7 @@ PRICE=$price";
 	public function find_fullfillments(){
 		$config = $this->config->get_data();
 		$exit_code = false; $_logline = '';
- 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought
+ 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) + floatval($this->markets[$this->symbol]['maker']);				// A sell and a bought
 		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;
 		$min_profit = 1 + max($trader_fee, $min_profit_config);
 		$_exchange = $this->exchange_name; $_symbol = $this->symbol;
@@ -1716,7 +1749,7 @@ PRICE=$price";
 	public function has_a_buy_to_compensate(float $_price): float{
 		$config = $this->config->get_data();
 		$exit_code = false; $_logline = '';
-		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought
+		$trader_fee = floatval($this->markets[$this->symbol]['taker']) + floatval($this->markets[$this->symbol]['maker']);				// A sell and a bought
 
 		$minimun_profit_percentage = $this->config->safe_value('minimun_profit_percentage', 1);
 		$minimun_profit_percentage2 = $this->minimun_profit_percentage();
@@ -1874,7 +1907,7 @@ PRICE=$price";
 			$this->balance = $this->exchange->fetch_balance();
 		}
 		$config = $this->config->get_data();
-		$trader_fee = floatval($this->markets[$this->symbol]['taker']) * 2;				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
+		$trader_fee = floatval($this->markets[$this->symbol]['taker']) + floatval($this->markets[$this->symbol]['maker']);				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
 		$min_profit_config = floatval($this->config->safe_value('minimun_profit_percentage', 1))/100;	// 1% => 0.01
 		$minimum_profit = 1 + max($trader_fee, $min_profit_config);
 

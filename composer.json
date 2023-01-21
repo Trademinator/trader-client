@@ -17,25 +17,23 @@
         }
     ],
     "require": {
-        "ccxt/ccxt": "*",
+	"php": ">=8.1.0",
+        "ccxt/ccxt": "^2",
 	"clue/http-proxy-react": "*",
-	"react/event-loop": "*",
-	"recoil/react": "*",
 	"pear/console_color2": "*",
-	"recoil/recoil": "*",
 	"ext-curl": "*",
 	"ext-mbstring": "*",
 	"ext-json": "*",
 	"ext-gmp": "*",
 	"ext-sqlite3": "*",
 	"longman/telegram-bot": "*",
-	"monolog/monolog": "*",
-        "react/http": "*"
+	"monolog/monolog": "*"
     },
     "autoload": {
         "files": [
 		"helpers/trading.php",
 		"helpers/stddev.php",
+		"helpers/floatcmp.php",
 		"helpers/OKayInc/trademinator.php",
 		"helpers/OKayInc/Trademinator/client.php",
 		"helpers/OKayInc/Trademinator/config.php",

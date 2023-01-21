@@ -1,6 +1,11 @@
 <?php
 declare(ticks = 1);
 
+if (PHP_VERSION_ID < 80100){
+	echo 'You need PHP 8.1+ to execute Trademinator '.PHP_EOL;
+	exit(1);
+}
+
 if (!verify_extensions()){
 	exit(1);
 }
