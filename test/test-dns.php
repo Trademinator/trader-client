@@ -4,7 +4,6 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $a = dns_get_record('version.trademinator.com', DNS_TXT);
 print_r($a);
 
-
 $aa = dns_get_record('download.trademinator.com', DNS_TXT);
 print_r($aa);
 echo sizeof($aa).PHP_EOL;

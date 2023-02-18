@@ -1334,6 +1334,7 @@ PRICE=$price";
 			$this->log_warning($_logline);
 		}
 		else{
+			// XXX/YYY  BTC/MXN  BTC/USDT
 			try{
 //echo 'IN $minimum_transaction: '.$minimum_transaction.PHP_EOL;
 				$_amount_to_buy = $this->adjust_amount_xxx($minimum_transaction, 'buy', floatval($signal['low_band']));
@@ -1341,7 +1342,7 @@ PRICE=$price";
 //echo 'OUT $_amount_to_buy: '.$_amount_to_buy.PHP_EOL;
 //echo 'OUT $_amount_to_buy2: '.$_amount_to_buy2.PHP_EOL;
 //convert $_amount_to_buy from XXX to YYY and verify we have enough YYY
-				$_amount_to_buy_yyy = $this->to_xxx($_amount_to_buy);
+				$_amount_to_buy_yyy = $this->to_yyy($_amount_to_buy);
 				if (!$this->enough_balance_yyy($_amount_to_buy_yyy)){
 					$_logline = 'Not enough balace to create an offline buying order.';
 					$this->log_warning($_logline);
@@ -1841,20 +1842,29 @@ PRICE=$price";
 //echo "adjust_amount_xxx(float $amount, string $side, ?float $transaction_price)".PHP_EOL;
 		if ($amount > 0){
 			// These are the minimum transaction amounts XXX/YYY
-			$minimum_transaction_xxx = floatval($this->markets[$this->symbol]['limits']['amount']['min'])*1.01;   // market currency, 1% because rounding may lower it
+			$minimum_transaction_xxx = floatval($this->markets[$this->symbol]['limits']['amount']['min'])*1.05;   // market currency, 5% because rounding may lower it
 			$minimum_transaction_yyy = (in_array($this->base_currency,\OKayInc\Trademinator::$stable_coins))?1:0.0001;  // TODO find a better way
 
-			if (!is_null($this->markets[$this->symbol]['limits']['cost']['min'])){
-				$minimum_transaction_yyy = floatval($this->markets[$this->symbol]['limits']['cost']['min']) * 1.01;               // base currency, 1% because rounding may lower it
+			if (isset($this->markets[$this->symbol]['limits']['cost']['min'])){
+				$minimum_transaction_yyy = floatval($this->markets[$this->symbol]['limits']['cost']['min']) * 1.05;               // base currency, 5% because rounding may lower it
+//echo 'got min from exchange: '.$minimum_transaction_yyy.PHP_EOL;
 			}
 
+			$minimum_transaction_yyy_to_xxx = $this->to_xxx($minimum_transaction_yyy);
+			$minimum_transaction_xxx_to_yyy = $this->to_yyy($minimum_transaction_xxx);
 //echo '$minimum_transaction_xxx: '.$minimum_transaction_xxx.PHP_EOL;
 //echo '$minimum_transaction_yyy: '.$minimum_transaction_yyy.PHP_EOL;
+//echo 'minimum_transaction_xxx_to_yyy: '.$minimum_transaction_xxx_to_yyy.PHP_EOL;
+//echo 'minimum_transaction_yyy_to_xxx: '.$minimum_transaction_yyy_to_xxx.PHP_EOL;
 
 			if ($amount < $minimum_transaction_xxx){
 //echo '$amount < $minimum_transaction_xxx'.PHP_EOL;
 				$amount = $minimum_transaction_xxx;
 //echo 'ADJ 1 $amount: '.$amount.PHP_EOL;
+			}
+
+			if ($amount < $minimum_transaction_yyy_to_xxx){
+				$amount = $minimum_transaction_yyy_to_xxx;
 			}
 
 			$_logline = __FILE__.':'.__LINE__.' $minimum_transaction_xxx = '.$minimum_transaction_xxx.'; $minimum_transaction_yyy = '.$minimum_transaction_yyy;
@@ -1863,7 +1873,6 @@ PRICE=$price";
 			if (is_null($transaction_price) || ($transaction_price == 0)){
 				$amount_yyy_sell = $amount / $this->last_ticker['bid'];
 				$amount_yyy_buy = $amount / $this->last_ticker['ask'];
-
 			}
 			else{
 				$amount_yyy_sell = $amount / $transaction_price;
@@ -1879,6 +1888,13 @@ PRICE=$price";
 				$amount_xxx = max($amount_yyy, $minimum_transaction_yyy) / $this->last_ticker[$side=='sell'?'bid':'ask'];
 				$amount = max($amount, $amount_xxx);
 //echo 'ADJ 2 $amount: '.$amount.PHP_EOL;
+			}
+
+			if (($minimum_transaction_yyy > 0) && ($amount_yyy < $minimum_transaction_xxx_to_yyy)){
+				$amount_yyy = $minimum_transaction_xxx_to_yyy;
+				$amount_xxx = max($amount_yyy, $minimum_transaction_xxx_to_yyy) / $this->last_ticker[$side=='sell'?'bid':'ask'];
+				$amount = max($amount, $amount_xxx);
+//echo 'ADJ 2a $amount: '.$amount.PHP_EOL;
 			}
 
 			switch ($side){
@@ -2033,7 +2049,7 @@ PRICE=$price";
 			$this->log_debug($_logline);
 		}
 
-		$amount_yyy = $amount_xxx / $this->last_ticker['bid'];
+		$amount_yyy = $amount_xxx * $this->last_ticker['bid'];
 		return $amount_yyy;
 	}
 
@@ -2045,7 +2061,7 @@ PRICE=$price";
 			$this->log_debug($_logline);
 		}
 
-		$amount_xxx = $amount_yyy * $this->last_ticker['ask'];
+		$amount_xxx = $amount_yyy / $this->last_ticker['ask'];
 		return $amount_xxx;
 	}
 
