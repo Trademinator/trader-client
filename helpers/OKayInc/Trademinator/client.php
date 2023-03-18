@@ -77,7 +77,7 @@ class Client extends \OKayInc\Trademinator{
 		$mode = $this->config->safe_value('mode', 'trademinator');
 		$strategy = $this->config->safe_value('strategy', 'memory');
 		$url = $this->config->safe_value('url', 'https://signals.trademinator.com');
-		$trademinator_url = $url.'/ask.php?exchange='.$this->exchange_name.'&symbol='.$this->symbol.'&period=15';
+		$trademinator_url = $url.'/ask.php?exchange='.$this->exchange_name.'&symbol='.$this->symbol.'&period=15m';
 		$sell_only = filter_var($this->config->safe_value('sell_only', false), FILTER_VALIDATE_BOOLEAN);
 
 		$_logline = __FILE__.':'.__LINE__.' $trademinator_url: '.$trademinator_url;
@@ -109,6 +109,7 @@ class Client extends \OKayInc\Trademinator{
 //			throw new \Exception('Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')');
 			$_logline = 'Could not connect to '.$trademinator_url.'('.curl_error($ch).': '.curl_error($ch).')';
 			$this->log_warning($_logline);
+			$signal = null;
 
 		}
 		else{
@@ -220,7 +221,7 @@ class Client extends \OKayInc\Trademinator{
 					if ($signal['points'] >= $minimum_points){
 						$exit_code = true;
 						try{
-							$this->balance = $this->exchange->fetch_balance();
+							$this->balance = $this->fetch_balance();
 							$_logline = 'Balance: '.$this->balance[$this->base_currency]['total'].' '.$this->base_currency.', '.$this->balance[$this->market_currency]['total'].' '.$this->market_currency;
 							$this->log_notice($_logline);
 
@@ -474,11 +475,8 @@ class Client extends \OKayInc\Trademinator{
 		return $exit_code;			
 	}
 
-	private function next_evaluation(array $signal, $exit_code = false): int{
-		if ($signal['next_evaluation'] > time()){
-			$this->next_evaluation = $signal['next_evaluation'];
-		}
-		else{
+	private function next_evaluation(?array $signal, $exit_code = false): int{
+		if (is_null($signal) || ($signal['next_evaluation'] <= time())){
 			$config = $this->config->get_data();
 			//$mode = $config['mode'];
 			$mode = $this->config->safe_value('mode', 'trademinator');
@@ -488,6 +486,9 @@ class Client extends \OKayInc\Trademinator{
 			else{
 				$this->next_evaluation = time() + $this->config->safe_value('minimum_operation_space_in_seconds', 600);
 			}
+		}
+		else {
+			$this->next_evaluation = $signal['next_evaluation'];
 		}
 
 		return $this->next_evaluation;
@@ -675,7 +676,7 @@ class Client extends \OKayInc\Trademinator{
 		}
 
 		if (count($this->balance) == 0){
-			$this->balance = $this->exchange->fetch_balance();
+			$this->balance = $this->fetch_balance();
 
 			$_logline = __FILE__.':'.__LINE__.' $this->balance: '.print_r($this->balance, true);
 			$this->log_debug($_logline);
@@ -801,7 +802,7 @@ class Client extends \OKayInc\Trademinator{
 		}
 
 		if (count($this->balance) == 0){
-			$this->balance = $this->exchange->fetch_balance();
+			$this->balance = $this->fetch_balance();
 
 			$_logline = __FILE__.':'.__LINE__.' $this->balance: '.print_r($this->balance, true);
 			$this->log_debug($_logline);
@@ -1058,7 +1059,7 @@ PRICE=$price";
 		$answer = null;
 		if (is_null($amount)){
 			list($c, $m) = explode('/', urldecode($this->symbol));
-			$this->balance = $this->exchange->fetch_balance(); $cc = $m;
+			$this->balance = $this->fetch_balance(); $cc = $m;
 			if ($side = 'sell'){
 				$cc = $c;
 			}
@@ -1256,7 +1257,7 @@ PRICE=$price";
 		do{
 			try{
 				$this->last_ticker = $this->exchange->fetch_ticker($this->symbol);
-				$this->balance = $this->exchange->fetch_balance();
+				$this->balance = $this->fetch_balance();
 				$again = false;
 			}
 			catch (\ccxt\AuthenticationError $e) {
@@ -1807,7 +1808,7 @@ PRICE=$price";
 	public function enough_balance_xxx(float $amount):bool{
 		$answer = false;
 		if (!is_array($this->balance) || (count($this->balance)) == 0){
-			$this->balance = $this->exchange->fetch_balance();
+			$this->balance = $this->fetch_balance();
 
 			$_logline = __FILE__.':'.__LINE__.' $this->balance: '.print_r($this->balance, true);
 			$this->log_debug($_logline);
@@ -1824,7 +1825,7 @@ PRICE=$price";
 	public function enough_balance_yyy(float $amount):bool{
 		$answer = false;
 		if (!is_array($this->balance) || (count($this->balance)) == 0){
-			$this->balance = $this->exchange->fetch_balance();
+			$this->balance = $this->fetch_balance();
 
 			$_logline = __FILE__.':'.__LINE__.' $this->balance: '.print_r($this->balance, true);
 			$this->log_debug($_logline);
@@ -1920,7 +1921,7 @@ PRICE=$price";
 	// returns the ceil price (profit included) that that XXX balance should be sold, could be zero if no purchase is registered
 	public function find_excess(): array{
 		if ((!is_array($this->balance)) || (count($this->balance) == 0)){
-			$this->balance = $this->exchange->fetch_balance();
+			$this->balance = $this->fetch_balance();
 		}
 		$config = $this->config->get_data();
 		$trader_fee = floatval($this->markets[$this->symbol]['taker']) + floatval($this->markets[$this->symbol]['maker']);				// A sell and a bought	50% => 0.50, 0.20% => 0.0020
@@ -2079,5 +2080,33 @@ PRICE=$price";
 			$amount = $this->balance[$this->market_currency]['free'];
 		}
 		return $amount;
+	}
+
+	private function fetch_balance(?array $params = []): array{
+		if (is_null($params)){
+			$params = array();
+		}
+
+		$result = array();
+		$loop = true;
+		do {
+			$balance = $this->exchange->fetch_balance($params);
+			$pagination = $this->exchange->safe_value($balance['info'], 'pagination');
+			if ($pagination === null){
+				$loop = false;
+			}
+			else{
+				$next_starting_after = $this->exchange->safe_string($pagination, 'next_starting_after');
+				if ($next_starting_after !== null){
+					$params['starting_after'] = $next_starting_after;
+				}
+				else{
+					$loop = false;
+				}
+			}
+			$result = $this->exchange->deep_extend($result, $balance);
+		} while ($loop);
+
+		return ($this->balance = $result);
 	}
 }
