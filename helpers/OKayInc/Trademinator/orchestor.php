@@ -26,6 +26,7 @@ class Orchestor extends \OKayInc\Trademinator{
 "CREATE UNIQUE INDEX IF NOT EXISTS buy_id_sell_id on buys_vs_sells(buy_id, sell_id);",
 "CREATE TABLE IF NOT EXISTS deposits (id TEXT NOT NULL PRIMARY KEY, timestamp INTEGER NOT NULL, exchange TEXT NOT NULL, currency TEXT NOT NULL, prices TEXT, missing NUMERIC NOT NULL);",
 "CREATE UNIQUE INDEX IF NOT EXISTS deposits_exchange_symbol_timestamp ON deposits(exchange, currency, timestamp);",
+"CREATE TABLE IF NOT EXISTS balances (timestamp INTEGER NOT NULL, exchange TEXT NOT NULL, currency TEXT NOT NULL, balance NUMERIC NOT NULL, PRIMARY KEY (exchange, currency, timestamp));",
 		);
 
 		$this->db = new \SQLite3(TRADEMINATOR_ROOTDIR.'trademinator.db', SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE);

@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "33fd2bed436e37da5748edbfcf49a727",
+    "content-hash": "9b1a692c77778ae4f7b67722fc704671",
     "packages": [
         {
             "name": "ccxt/ccxt",
-            "version": "2.9.16",
+            "version": "3.0.56",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ccxt/ccxt.git",
-                "reference": "6f6266097ede05cceab00f12417cdad745113efb"
+                "reference": "af1cee2342687fc42403d4affdc1b911854fb2c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/6f6266097ede05cceab00f12417cdad745113efb",
-                "reference": "6f6266097ede05cceab00f12417cdad745113efb",
+                "url": "https://api.github.com/repos/ccxt/ccxt/zipball/af1cee2342687fc42403d4affdc1b911854fb2c0",
+                "reference": "af1cee2342687fc42403d4affdc1b911854fb2c0",
                 "shasum": ""
             },
             "require": {
@@ -287,7 +287,7 @@
             ],
             "support": {
                 "issues": "https://github.com/ccxt/ccxt/issues",
-                "source": "https://github.com/ccxt/ccxt/tree/2.9.16"
+                "source": "https://github.com/ccxt/ccxt/tree/3.0.56"
             },
             "funding": [
                 {
@@ -295,7 +295,7 @@
                     "type": "open_collective"
                 }
             ],
-            "time": "2023-03-13T16:07:47+00:00"
+            "time": "2023-04-06T21:22:24+00:00"
         },
         {
             "name": "clue/http-proxy-react",
@@ -1220,25 +1220,25 @@
         },
         {
             "name": "psr/http-message",
-            "version": "1.0.1",
+            "version": "1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-fig/http-message.git",
-                "reference": "f6561bf28d520154e4b0ec72be95418abe6d9363"
+                "reference": "cb6ce4845ce34a8ad9e68117c10ee90a29919eba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-fig/http-message/zipball/f6561bf28d520154e4b0ec72be95418abe6d9363",
-                "reference": "f6561bf28d520154e4b0ec72be95418abe6d9363",
+                "url": "https://api.github.com/repos/php-fig/http-message/zipball/cb6ce4845ce34a8ad9e68117c10ee90a29919eba",
+                "reference": "cb6ce4845ce34a8ad9e68117c10ee90a29919eba",
                 "shasum": ""
             },
             "require": {
-                "php": ">=5.3.0"
+                "php": "^7.2 || ^8.0"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.0.x-dev"
+                    "dev-master": "1.1.x-dev"
                 }
             },
             "autoload": {
@@ -1267,9 +1267,9 @@
                 "response"
             ],
             "support": {
-                "source": "https://github.com/php-fig/http-message/tree/master"
+                "source": "https://github.com/php-fig/http-message/tree/1.1"
             },
-            "time": "2016-08-06T14:39:51+00:00"
+            "time": "2023-04-04T09:50:52+00:00"
         },
         {
             "name": "psr/log",
@@ -2515,5 +2515,5 @@
         "ext-sqlite3": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.2.0"
+    "plugin-api-version": "2.3.0"
 }

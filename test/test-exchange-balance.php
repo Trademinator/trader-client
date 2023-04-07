@@ -24,6 +24,8 @@ $c = new \OKayInc\Trademinator\Config($fn);
 $e = new \okayinc\trademinator\client($exchange, $symbol, $c, Trademinator::DEBUG|Trademinator::ERROR|Trademinator::WARNING|Trademinator::NOTICE|Trademinator::INFO);
 list($xxx, $yyy) = explode('/', urldecode($symbol));
 
+$e->get_exchange()->verbose = true;
+
 $result = array();
 $params = array();
 $loop = true;

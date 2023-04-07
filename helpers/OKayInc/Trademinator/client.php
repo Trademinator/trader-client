@@ -142,6 +142,7 @@ class Client extends \OKayInc\Trademinator{
 					if ($sell_only){
 						$_logline = 'BUY condition detected, but only SELLS are allowed in for '.$this->symbol;
 						$this->log_warning($_logline);
+						$this->record_balances();
 						$this->next_evaluation($signal, $exit_code);
 						return $exit_code;			
 					}
@@ -458,6 +459,7 @@ class Client extends \OKayInc\Trademinator{
 				default:
 			}
 
+			$this->record_balances();
 			$this->offline($signal);
 			$this->report();
 
@@ -2108,5 +2110,36 @@ PRICE=$price";
 		} while ($loop);
 
 		return ($this->balance = $result);
+	}
+
+	private function record_balances(){
+		if (is_null($this->balance) || (count($this->balance) == 0)){
+			$this->balance = $this->fetch_balance();
+		}
+		$this->record_balance($this->base_currency);
+		$this->record_balance($this->market_currency);
+	}
+
+	private function record_balance(string $currency){
+		$now = strtotime('now');
+		$todays_midnight = strtotime('today midnight');
+		$tomorros_midnight = strtotime('tomorrow');
+		$sql_verify = "SELECT COUNT(*) AS C FROM balances WHERE exchange = :exchange AND currency = :currency AND timestamp >= $todays_midnight AND timestamp < $tomorros_midnight";
+		$statement = $this->db->prepare($sql_verify);
+		$statement->bindValue(':exchange', $this->exchange_name, SQLITE3_TEXT);
+		$statement->bindValue(':currency', $currency, SQLITE3_TEXT);
+		$result = $statement->execute();
+		$row = $result->fetchArray(SQLITE3_ASSOC);
+
+		if ($row['C'] == 0){
+			$sql_insert = "INSERT INTO balances (timestamp, exchange, currency, balance) 
+				VALUES ($now, '".$this->exchange_name."', '$currency', ".$this->balance[$currency]['total'].")";
+			try{
+				$this->db->exec($sql_insert);
+			}
+			catch(Exception $e) {
+				$this->log_error($e->getMessage().PHP_EOL);
+			}
+		}
 	}
 }
