@@ -313,7 +313,7 @@ class Client extends \OKayInc\Trademinator{
 	
 										$minimun_profit_percentage = $this->config->safe_value('minimun_profit_percentage', 1);
 										$minimun_profit_percentage2 = $this->minimun_profit_percentage();
-										$this->log_info('Suggested minimum profit percentage: '.$minimun_profit_percentage2);
+//										$this->log_info('Suggested minimum profit percentage: '.$minimun_profit_percentage2);
 										if ($minimun_profit_percentage == 'auto'){
 											$minimun_profit_percentage = $minimun_profit_percentage2;
 										}
@@ -1462,6 +1462,8 @@ PRICE=$price";
 
 
 	private function get_my_trades(?int $since): array{
+		global $debug;
+
 		if (!$this->exchange->has['fetchMyTrades']) {
 			throw new Exception ($this->exchange->id . ' does not have the fetch_my_trades method');
 			return [];
@@ -1532,6 +1534,8 @@ PRICE=$price";
 
 	// Functions captures all the trades into the db for future analysis
 	public function migrate_to_db(?int $since){
+		global $debug;
+
 		if (is_null($this->db) || empty($this->db)){
 			throw new \Exception('DB handler not set.');
 		}
@@ -2036,7 +2040,10 @@ PRICE=$price";
 
 
 	public function minimun_profit_percentage(){
-		$min_profit = 1;
+		$trader_fee = $this->markets[$this->symbol]['taker'];
+                $owner_reminding = 1 - $trader_fee;
+                $min_profit = bcmul(bcsub(1.0000, bcmul($owner_reminding, $owner_reminding, 8), 8), 100.0, 8);	// Must be in % units
+//		$min_profit = 1;
 		if (is_array($this->signal)){
 			$min_profit = floatval($this->signal['parameters']['minimun_profit_percentage']);
 		}

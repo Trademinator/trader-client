@@ -1,5 +1,6 @@
 <?php
 defined("TRADEMINATOR_ROOTDIR") or define("TRADEMINATOR_ROOTDIR", __DIR__ . DIRECTORY_SEPARATOR);
+defined("TRADEMINATOR_LOGS") or define("TRADEMINATOR_LOGS", __DIR__ . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 use OKayInc\Trademinator;
