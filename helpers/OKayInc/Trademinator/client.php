@@ -2042,8 +2042,10 @@ PRICE=$price";
 	public function minimun_profit_percentage(){
 		$trader_fee = $this->markets[$this->symbol]['taker'];
                 $owner_reminding = 1 - $trader_fee;
-                $min_profit = bcmul(bcsub(1.0000, bcmul($owner_reminding, $owner_reminding, 8), 8), 100.0, 8);	// Must be in % units
+//		$min_profit = bcmul(bcsub(1.0000, bcmul($owner_reminding, $owner_reminding, 8), 8), 100.0, 8);	// Must be in % units
 //		$min_profit = 1;
+		$min_profit = bcmul(bcmul($trader_fee, $trader_fee, 8), 100.0, 8);
+
 		if (is_array($this->signal)){
 			$min_profit = floatval($this->signal['parameters']['minimun_profit_percentage']);
 		}
